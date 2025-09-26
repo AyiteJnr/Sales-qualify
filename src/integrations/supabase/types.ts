@@ -14,7 +14,212 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      call_records: {
+        Row: {
+          admin_notes: string | null
+          answers: Json | null
+          audio_url: string | null
+          call_timestamp: string | null
+          client_id: string | null
+          comments: string | null
+          created_at: string | null
+          id: string
+          next_action: string | null
+          qualification_status:
+            | Database["public"]["Enums"]["qualification_status"]
+            | null
+          rep_id: string | null
+          score: number | null
+          tags: string[] | null
+          transcript_text: string | null
+          transcript_url: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          answers?: Json | null
+          audio_url?: string | null
+          call_timestamp?: string | null
+          client_id?: string | null
+          comments?: string | null
+          created_at?: string | null
+          id?: string
+          next_action?: string | null
+          qualification_status?:
+            | Database["public"]["Enums"]["qualification_status"]
+            | null
+          rep_id?: string | null
+          score?: number | null
+          tags?: string[] | null
+          transcript_text?: string | null
+          transcript_url?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          answers?: Json | null
+          audio_url?: string | null
+          call_timestamp?: string | null
+          client_id?: string | null
+          comments?: string | null
+          created_at?: string | null
+          id?: string
+          next_action?: string | null
+          qualification_status?:
+            | Database["public"]["Enums"]["qualification_status"]
+            | null
+          rep_id?: string | null
+          score?: number | null
+          tags?: string[] | null
+          transcript_text?: string | null
+          transcript_url?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_records_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_records_rep_id_fkey"
+            columns: ["rep_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          assigned_rep_id: string | null
+          client_id: string
+          company_name: string | null
+          created_at: string | null
+          email: string | null
+          full_name: string
+          id: string
+          location: string | null
+          notes: string | null
+          phone: string | null
+          scheduled_time: string | null
+          source: string | null
+          status: Database["public"]["Enums"]["call_status"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_rep_id?: string | null
+          client_id: string
+          company_name?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name: string
+          id?: string
+          location?: string | null
+          notes?: string | null
+          phone?: string | null
+          scheduled_time?: string | null
+          source?: string | null
+          status?: Database["public"]["Enums"]["call_status"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_rep_id?: string | null
+          client_id?: string
+          company_name?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string
+          id?: string
+          location?: string | null
+          notes?: string | null
+          phone?: string | null
+          scheduled_time?: string | null
+          source?: string | null
+          status?: Database["public"]["Enums"]["call_status"] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_assigned_rep_id_fkey"
+            columns: ["assigned_rep_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          email: string
+          full_name: string
+          id: string
+          phone: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          timezone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          full_name: string
+          id: string
+          phone?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          timezone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          full_name?: string
+          id?: string
+          phone?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          timezone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      questions: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          objections: Json | null
+          order_index: number
+          scoring_weight: number | null
+          script_text: string | null
+          text: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          objections?: Json | null
+          order_index: number
+          scoring_weight?: number | null
+          script_text?: string | null
+          text: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          objections?: Json | null
+          order_index?: number
+          scoring_weight?: number | null
+          script_text?: string | null
+          text?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +228,9 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      call_status: "scheduled" | "in_progress" | "completed" | "cancelled"
+      qualification_status: "hot" | "warm" | "cold"
+      user_role: "admin" | "rep"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +357,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      call_status: ["scheduled", "in_progress", "completed", "cancelled"],
+      qualification_status: ["hot", "warm", "cold"],
+      user_role: ["admin", "rep"],
+    },
   },
 } as const
