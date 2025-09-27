@@ -9,7 +9,10 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import AddClient from "./pages/AddClient";
 import GoogleSheetsImport from "./pages/GoogleSheetsImport";
-import QualificationForm from "./pages/QualificationForm";
+import EnhancedQualificationForm from "./pages/EnhancedQualificationForm";
+import StartQualification from "./pages/StartQualification";
+import CallHistory from "./pages/CallHistory";
+import AdminSettings from "./pages/AdminSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,7 +30,10 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/client/new" element={<AddClient />} />
             <Route path="/import/google-sheets" element={<GoogleSheetsImport />} />
-            <Route path="/qualification/:clientId" element={<QualificationForm />} />
+            <Route path="/qualification/:clientId" element={<EnhancedQualificationForm />} />
+            <Route path="/start-qualification" element={<StartQualification />} />
+            <Route path="/call-history" element={<CallHistory />} />
+            <Route path="/admin" element={<AdminSettings />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
