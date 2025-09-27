@@ -139,13 +139,21 @@ const Dashboard = () => {
             </p>
           </div>
           <div className="flex gap-2">
+            <Button onClick={() => navigate('/start-qualification')}>
+              <Plus className="h-4 w-4 mr-2" />
+              Start Qualification
+            </Button>
             <Button onClick={() => navigate('/import/google-sheets')} variant="outline">
               <FileSpreadsheet className="h-4 w-4 mr-2" />
               Import from Sheets
             </Button>
-            <Button onClick={() => navigate('/client/new')}>
+            <Button onClick={() => navigate('/client/new')} variant="outline">
               <Plus className="h-4 w-4 mr-2" />
               Add Client
+            </Button>
+            <Button onClick={() => navigate('/call-history')} variant="outline">
+              <Phone className="h-4 w-4 mr-2" />
+              Call History
             </Button>
           </div>
         </div>

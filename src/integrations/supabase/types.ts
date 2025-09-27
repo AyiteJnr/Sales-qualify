@@ -100,13 +100,16 @@ export type Database = {
           created_at: string | null
           email: string | null
           full_name: string
+          google_sheets_row_id: number | null
           id: string
+          last_synced_at: string | null
           location: string | null
           notes: string | null
           phone: string | null
           scheduled_time: string | null
           source: string | null
           status: Database["public"]["Enums"]["call_status"] | null
+          sync_status: string | null
           updated_at: string | null
         }
         Insert: {
@@ -116,13 +119,16 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           full_name: string
+          google_sheets_row_id?: number | null
           id?: string
+          last_synced_at?: string | null
           location?: string | null
           notes?: string | null
           phone?: string | null
           scheduled_time?: string | null
           source?: string | null
           status?: Database["public"]["Enums"]["call_status"] | null
+          sync_status?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -132,19 +138,168 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           full_name?: string
+          google_sheets_row_id?: number | null
           id?: string
+          last_synced_at?: string | null
           location?: string | null
           notes?: string | null
           phone?: string | null
           scheduled_time?: string | null
           source?: string | null
           status?: Database["public"]["Enums"]["call_status"] | null
+          sync_status?: string | null
           updated_at?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "clients_assigned_rep_id_fkey"
             columns: ["assigned_rep_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integrations: {
+        Row: {
+          config: Json
+          created_at: string
+          id: string
+          integration_type: string
+          is_active: boolean | null
+          last_sync_at: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          id?: string
+          integration_type: string
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          id?: string
+          integration_type?: string
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integrations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_qualifications: {
+        Row: {
+          budget: string
+          client_id: string | null
+          company_name: string
+          company_size: string
+          competitor_analysis: string | null
+          contact_name: string
+          created_at: string
+          current_solution: string | null
+          decision_makers: string
+          email: string
+          has_authority: string
+          has_need: string
+          has_urgency: string
+          id: string
+          implementation_timeline: string
+          industry: string
+          lead_score: number | null
+          next_steps: string
+          pain_points: string
+          phone: string
+          qualification_status: string | null
+          rep_id: string | null
+          roi_expectations: string | null
+          stakeholder_buy_in: string
+          technical_requirements: string | null
+          timeline: string
+          updated_at: string
+        }
+        Insert: {
+          budget: string
+          client_id?: string | null
+          company_name: string
+          company_size: string
+          competitor_analysis?: string | null
+          contact_name: string
+          created_at?: string
+          current_solution?: string | null
+          decision_makers: string
+          email: string
+          has_authority: string
+          has_need: string
+          has_urgency: string
+          id?: string
+          implementation_timeline: string
+          industry: string
+          lead_score?: number | null
+          next_steps: string
+          pain_points: string
+          phone: string
+          qualification_status?: string | null
+          rep_id?: string | null
+          roi_expectations?: string | null
+          stakeholder_buy_in: string
+          technical_requirements?: string | null
+          timeline: string
+          updated_at?: string
+        }
+        Update: {
+          budget?: string
+          client_id?: string | null
+          company_name?: string
+          company_size?: string
+          competitor_analysis?: string | null
+          contact_name?: string
+          created_at?: string
+          current_solution?: string | null
+          decision_makers?: string
+          email?: string
+          has_authority?: string
+          has_need?: string
+          has_urgency?: string
+          id?: string
+          implementation_timeline?: string
+          industry?: string
+          lead_score?: number | null
+          next_steps?: string
+          pain_points?: string
+          phone?: string
+          qualification_status?: string | null
+          rep_id?: string | null
+          roi_expectations?: string | null
+          stakeholder_buy_in?: string
+          technical_requirements?: string | null
+          timeline?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_qualifications_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_qualifications_rep_id_fkey"
+            columns: ["rep_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -225,7 +380,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      transcribe_audio_placeholder: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
       call_status: "scheduled" | "in_progress" | "completed" | "cancelled"
