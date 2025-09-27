@@ -8,7 +8,9 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import AudioRecorder from '@/components/AudioRecorder';
+import TrafftBooking from '@/components/TrafftBooking';
 import { 
   Phone, 
   ArrowLeft, 
@@ -50,6 +52,7 @@ const EnhancedQualificationForm = () => {
   const { clientId } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, profile } = useAuth();
   
   const [client, setClient] = useState<Client | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -58,6 +61,7 @@ const EnhancedQualificationForm = () => {
   const [saving, setSaving] = useState(false);
   const [score, setScore] = useState(0);
   const [callRecordId, setCallRecordId] = useState<string | null>(null);
+  const [existingCallRecord, setExistingCallRecord] = useState<any>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [transcript, setTranscript] = useState<string>('');
   const [audioUrl, setAudioUrl] = useState<string>('');
@@ -105,6 +109,7 @@ const EnhancedQualificationForm = () => {
         setAnswers(callRecordData.answers as Record<string, string> || {});
         setScore(callRecordData.score || 0);
         setCallRecordId(callRecordData.id);
+        setExistingCallRecord(callRecordData);
         setTranscript(callRecordData.transcript_text || '');
         setAudioUrl(callRecordData.audio_url || '');
       }
@@ -212,52 +217,82 @@ const EnhancedQualificationForm = () => {
   };
 
   const handleSave = async () => {
+    if (!client) return;
+
     setSaving(true);
     const calculatedScore = calculateScore();
     setScore(calculatedScore);
 
     try {
-      const recordData = {
-        client_id: clientId,
-        rep_id: 'public-user',
-        answers,
+      const qualificationStatus: 'hot' | 'warm' | 'cold' = calculatedScore >= 80 ? 'hot' : calculatedScore >= 60 ? 'warm' : 'cold';
+      
+      const callData = {
+        client_id: client.id,
+        rep_id: user?.id || 'public-user',
+        answers: answers,
         score: calculatedScore,
-        qualification_status: calculatedScore >= 70 ? 'hot' : calculatedScore >= 40 ? 'warm' : 'cold',
-        next_action: calculatedScore >= 70 ? 'Schedule demo' : calculatedScore >= 40 ? 'Follow up call' : 'Archive lead',
         transcript_text: transcript,
         audio_url: audioUrl,
-        call_timestamp: new Date().toISOString()
-      } as const;
+        qualification_status: qualificationStatus,
+        comments: `Qualification completed with score: ${calculatedScore}% on ${new Date().toLocaleDateString()}`,
+        next_action: calculatedScore >= 70 ? 'Schedule demo meeting' : 'Follow up in 1 week',
+        tags: calculatedScore >= 80 ? ['hot-lead', 'high-priority'] : calculatedScore >= 60 ? ['warm-lead'] : ['cold-lead'],
+        admin_notes: `Call completed by ${profile?.full_name || 'Sales Rep'}`
+      };
 
-      const { error } = callRecordId 
-        ? await supabase
-            .from('call_records')
-            .update(recordData)
-            .eq('id', callRecordId)
-        : await supabase
-            .from('call_records')
-            .insert([recordData]);
+      let result;
+      if (existingCallRecord) {
+        result = await supabase
+          .from('call_records')
+          .update(callData)
+          .eq('id', existingCallRecord.id)
+          .select();
+      } else {
+        result = await supabase
+          .from('call_records')
+          .insert([callData])
+          .select();
+      }
 
-      if (error) throw error;
+      if (result.error) throw result.error;
 
       // Update client status
       await supabase
         .from('clients')
         .update({ 
-          status: calculatedScore >= 70 ? 'completed' : 'in_progress' 
+          status: 'completed',
+          notes: `Qualification score: ${calculatedScore}% - ${qualificationStatus.toUpperCase()}`
         })
-        .eq('id', clientId);
+        .eq('id', client.id);
+
+      // Save for export functionality  
+      if (result.data && result.data[0]) {
+        localStorage.setItem('lastCallRecordId', result.data[0].id);
+        localStorage.setItem('lastCallData', JSON.stringify({
+          clientName: client.full_name,
+          score: calculatedScore,
+          status: qualificationStatus,
+          answers: answers,
+          transcript: transcript,
+          date: new Date().toISOString()
+        }));
+      }
 
       toast({
-        title: "Qualification Saved Successfully!",
-        description: `Lead scored ${calculatedScore}/100 and is classified as ${calculatedScore >= 70 ? 'HOT' : calculatedScore >= 40 ? 'WARM' : 'COLD'}. You can view this record in Call History.`,
+        title: "Success!",
+        description: `Qualification saved successfully! Score: ${calculatedScore}/100. Call record available for export and booking follow-up meeting.`,
       });
 
-      navigate('/dashboard');
+      // Navigate back after delay
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 1500);
+
     } catch (error: any) {
+      console.error('Save error:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to save qualification",
+        description: error.message || "Failed to save qualification data. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -490,6 +525,21 @@ const EnhancedQualificationForm = () => {
                       ))}
                     </div>
 
+                    {/* Booking Integration */}
+                    <div className="mt-6">
+                      <TrafftBooking 
+                        clientName={client.full_name}
+                        leadScore={calculateScore()}
+                        qualification={calculateScore() >= 80 ? 'hot' : calculateScore() >= 60 ? 'warm' : 'cold'}
+                        onBookingComplete={(url) => {
+                          toast({
+                            title: "Booking Complete",
+                            description: "Meeting booking system opened. Don't forget to save your qualification data.",
+                          });
+                        }}
+                      />
+                    </div>
+
                     {/* Navigation */}
                     <div className="flex justify-between pt-4">
                       <Button variant="outline" onClick={prevStep}>
@@ -499,7 +549,7 @@ const EnhancedQualificationForm = () => {
                       <Button onClick={handleSave} disabled={saving}>
                         {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         <Save className="h-4 w-4 mr-2" />
-                        Save Qualification
+                        Save & Export Data
                       </Button>
                     </div>
                   </CardContent>

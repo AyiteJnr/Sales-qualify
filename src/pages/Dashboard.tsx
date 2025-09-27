@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
+import PerformanceDashboard from '@/components/PerformanceDashboard';
 import { Phone, Calendar, Building, MapPin, Search, Plus, LogOut, Settings, FileSpreadsheet } from 'lucide-react';
 import { format, isToday, isTomorrow } from 'date-fns';
 
@@ -29,9 +30,13 @@ const Dashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    // App is now public - always fetch clients
-    fetchClients();
-  }, []);
+    if (user) {
+      fetchClients();
+    } else {
+      // Redirect to auth if no user
+      navigate('/auth');
+    }
+  }, [user, navigate]);
 
   const fetchClients = async () => {
     try {
@@ -84,8 +89,12 @@ const Dashboard = () => {
   };
 
   const handleSignOut = async () => {
-    // Sign out disabled - app is public
-    console.log('Sign out disabled in public mode');
+    try {
+      await signOut();
+      navigate('/auth');
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
   };
 
   if (authLoading || loading) {
@@ -111,18 +120,28 @@ const Dashboard = () => {
             </div>
             <div className="flex items-center gap-4">
               <div className="text-sm text-muted-foreground">
-                Welcome, {profile?.full_name}
+                Welcome, {profile?.full_name || 'User'}
               </div>
               <Badge variant="default">
-                Public Access
+                {profile?.role || 'User'}
               </Badge>
+              {profile?.role === 'admin' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/admin')}
+                >
+                  <Settings className="h-4 w-4 mr-2" />
+                  Admin
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate('/admin')}
+                onClick={handleSignOut}
               >
-                <Settings className="h-4 w-4 mr-2" />
-                Admin
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
               </Button>
             </div>
           </div>
@@ -167,6 +186,11 @@ const Dashboard = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
           />
+        </div>
+
+        {/* Performance Dashboard */}
+        <div className="mb-8">
+          <PerformanceDashboard />
         </div>
 
         {/* Clients List */}
