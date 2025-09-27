@@ -29,23 +29,15 @@ const Dashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/auth');
-    }
-  }, [user, authLoading, navigate]);
-
-  useEffect(() => {
-    if (user) {
-      fetchClients();
-    }
-  }, [user]);
+    // App is now public - always fetch clients
+    fetchClients();
+  }, []);
 
   const fetchClients = async () => {
     try {
       const { data, error } = await supabase
         .from('clients')
         .select('*')
-        .eq('assigned_rep_id', user?.id)
         .order('scheduled_time', { ascending: true });
 
       if (error) throw error;
@@ -92,8 +84,8 @@ const Dashboard = () => {
   };
 
   const handleSignOut = async () => {
-    await signOut();
-    navigate('/auth');
+    // Sign out disabled - app is public
+    console.log('Sign out disabled in public mode');
   };
 
   if (authLoading || loading) {
@@ -121,22 +113,16 @@ const Dashboard = () => {
               <div className="text-sm text-muted-foreground">
                 Welcome, {profile?.full_name}
               </div>
-              <Badge variant={profile?.role === 'admin' ? 'default' : 'secondary'}>
-                {profile?.role === 'admin' ? 'Admin' : 'Sales Rep'}
+              <Badge variant="default">
+                Public Access
               </Badge>
-              {profile?.role === 'admin' && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate('/admin')}
-                >
-                  <Settings className="h-4 w-4 mr-2" />
-                  Admin
-                </Button>
-              )}
-              <Button variant="outline" size="sm" onClick={handleSignOut}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/admin')}
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Admin
               </Button>
             </div>
           </div>
