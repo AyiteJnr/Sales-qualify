@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
-import { Phone, Calendar, Building, MapPin, Search, Plus, LogOut, Settings } from 'lucide-react';
+import { Phone, Calendar, Building, MapPin, Search, Plus, LogOut, Settings, FileSpreadsheet } from 'lucide-react';
 import { format, isToday, isTomorrow } from 'date-fns';
 
 interface Client {
@@ -138,10 +138,16 @@ const Dashboard = () => {
               {filteredClients.length} client{filteredClients.length !== 1 ? 's' : ''} scheduled
             </p>
           </div>
-          <Button onClick={() => navigate('/client/new')}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Client
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => navigate('/import/google-sheets')} variant="outline">
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              Import from Sheets
+            </Button>
+            <Button onClick={() => navigate('/client/new')}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Client
+            </Button>
+          </div>
         </div>
 
         {/* Search */}

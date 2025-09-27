@@ -7,6 +7,9 @@ import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import AddClient from "./pages/AddClient";
+import GoogleSheetsImport from "./pages/GoogleSheetsImport";
+import QualificationForm from "./pages/QualificationForm";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -21,6 +24,9 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/client/new" element={<AddClient />} />
+            <Route path="/import/google-sheets" element={<GoogleSheetsImport />} />
+            <Route path="/qualification/:clientId" element={<QualificationForm />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
