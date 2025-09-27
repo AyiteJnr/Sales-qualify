@@ -7,12 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Phone, Lock, Mail, User, Loader2 } from 'lucide-react';
+import { Phone, Lock, Mail, User, Loader2, KeyRound } from 'lucide-react';
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [signupData, setSignupData] = useState({ email: '', password: '', fullName: '' });
+  const [resetData, setResetData] = useState({ email: '' });
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -83,6 +84,27 @@ const Auth = () => {
     }
   };
 
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      // For now, show a placeholder message - implement actual reset logic later
+      toast({
+        title: "Password Reset Requested",
+        description: "If an account with this email exists, you will receive reset instructions.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Reset Failed",
+        description: error.message || "An error occurred during password reset",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleDemoLogin = async (role: 'admin' | 'sales') => {
     setIsLoading(true);
     const credentials = role === 'admin' 
@@ -116,27 +138,30 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/20 via-background to-secondary/20 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-primary/10 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Phone className="h-8 w-8 text-primary" />
-            <h1 className="text-2xl font-bold">SalesQualify</h1>
+            <h1 className="text-3xl font-bold font-heading bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
+              SalesQualify
+            </h1>
           </div>
-          <p className="text-muted-foreground">Welcome to your sales qualification platform</p>
+          <p className="text-muted-foreground">Professional sales qualification platform</p>
         </div>
 
-        <Card>
+        <Card className="shadow-elegant border-0">
           <CardHeader>
-            <CardTitle>Access Your Account</CardTitle>
+            <CardTitle className="font-heading">Access Your Account</CardTitle>
             <CardDescription>Sign in to continue or create a new account</CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="login" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                <TabsTrigger value="reset">Reset</TabsTrigger>
               </TabsList>
 
               <TabsContent value="login">
@@ -171,7 +196,7 @@ const Auth = () => {
                       />
                     </div>
                   </div>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
+                  <Button type="submit" className="w-full bg-gradient-to-r from-primary to-primary-glow hover:shadow-glow transition-all duration-300" disabled={isLoading}>
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -231,7 +256,7 @@ const Auth = () => {
                       />
                     </div>
                   </div>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
+                  <Button type="submit" className="w-full bg-gradient-to-r from-primary to-primary-glow hover:shadow-glow transition-all duration-300" disabled={isLoading}>
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -239,6 +264,36 @@ const Auth = () => {
                       </>
                     ) : (
                       'Create Account'
+                    )}
+                  </Button>
+                </form>
+              </TabsContent>
+
+              <TabsContent value="reset">
+                <form onSubmit={handlePasswordReset} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="reset-email">Email Address</Label>
+                    <div className="relative">
+                      <KeyRound className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="reset-email"
+                        type="email"
+                        placeholder="Enter your email for password reset"
+                        value={resetData.email}
+                        onChange={(e) => setResetData({ email: e.target.value })}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <Button type="submit" className="w-full bg-gradient-to-r from-primary to-primary-glow hover:shadow-glow transition-all duration-300" disabled={isLoading}>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Sending Reset Link...
+                      </>
+                    ) : (
+                      'Send Reset Link'
                     )}
                   </Button>
                 </form>
@@ -256,7 +311,7 @@ const Auth = () => {
                   size="sm"
                   onClick={() => handleDemoLogin('admin')}
                   disabled={isLoading}
-                  className="text-xs"
+                  className="text-xs hover:bg-primary/5"
                 >
                   Admin Demo
                 </Button>
@@ -265,7 +320,7 @@ const Auth = () => {
                   size="sm"
                   onClick={() => handleDemoLogin('sales')}
                   disabled={isLoading}
-                  className="text-xs"
+                  className="text-xs hover:bg-primary/5"
                 >
                   Sales Demo
                 </Button>
@@ -282,7 +337,7 @@ const Auth = () => {
           <Button 
             variant="ghost" 
             onClick={() => navigate('/')}
-            className="text-sm text-muted-foreground"
+            className="text-sm text-muted-foreground hover:text-primary"
           >
             ← Back to Home
           </Button>

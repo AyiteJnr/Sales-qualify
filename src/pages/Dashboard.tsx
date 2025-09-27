@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import PerformanceDashboard from '@/components/PerformanceDashboard';
-import { Phone, Calendar, Building, MapPin, Search, Plus, LogOut, Settings, FileSpreadsheet } from 'lucide-react';
+import ShareLinkDialog from '@/components/ShareLinkDialog';
+import { Phone, Calendar, Building, MapPin, Search, Plus, LogOut, Settings, FileSpreadsheet, Share2 } from 'lucide-react';
 import { format, isToday, isTomorrow } from 'date-fns';
 
 interface Client {
@@ -109,27 +110,36 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-primary/10">
       {/* Header */}
-      <header className="border-b bg-card">
+      <header className="border-b bg-card/80 backdrop-blur-sm shadow-elegant">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Phone className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-bold">SalesQualify</h1>
+              <h1 className="text-xl font-bold font-heading bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
+                SalesQualify
+              </h1>
             </div>
             <div className="flex items-center gap-4">
               <div className="text-sm text-muted-foreground">
-                Welcome, {profile?.full_name || 'User'}
+                Welcome, <span className="font-medium text-foreground">{profile?.full_name || 'User'}</span>
               </div>
-              <Badge variant="default">
-                {profile?.role || 'User'}
+              <Badge variant="default" className="bg-gradient-to-r from-primary to-primary-glow">
+                {profile?.role === 'admin' ? 'Administrator' : 'Sales Rep'}
               </Badge>
+              <ShareLinkDialog>
+                <Button variant="outline" size="sm" className="hover:bg-primary/5">
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Share App
+                </Button>
+              </ShareLinkDialog>
               {profile?.role === 'admin' && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => navigate('/admin')}
+                  className="hover:bg-primary/5"
                 >
                   <Settings className="h-4 w-4 mr-2" />
                   Admin
@@ -139,6 +149,7 @@ const Dashboard = () => {
                 variant="outline"
                 size="sm"
                 onClick={handleSignOut}
+                className="hover:bg-destructive/5"
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Sign Out
@@ -158,19 +169,19 @@ const Dashboard = () => {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button onClick={() => navigate('/start-qualification')}>
+            <Button onClick={() => navigate('/start-qualification')} className="bg-gradient-to-r from-primary to-primary-glow hover:shadow-glow transition-all duration-300">
               <Plus className="h-4 w-4 mr-2" />
               Start Qualification
             </Button>
-            <Button onClick={() => navigate('/import/google-sheets')} variant="outline">
+            <Button onClick={() => navigate('/import/google-sheets')} variant="outline" className="hover:bg-primary/5">
               <FileSpreadsheet className="h-4 w-4 mr-2" />
               Import from Sheets
             </Button>
-            <Button onClick={() => navigate('/client/new')} variant="outline">
+            <Button onClick={() => navigate('/client/new')} variant="outline" className="hover:bg-primary/5">
               <Plus className="h-4 w-4 mr-2" />
               Add Client
             </Button>
-            <Button onClick={() => navigate('/call-history')} variant="outline">
+            <Button onClick={() => navigate('/call-history')} variant="outline" className="hover:bg-primary/5">
               <Phone className="h-4 w-4 mr-2" />
               Call History
             </Button>
@@ -195,15 +206,15 @@ const Dashboard = () => {
 
         {/* Clients List */}
         {filteredClients.length === 0 ? (
-          <Card>
+          <Card className="shadow-elegant border-0">
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No clients found</h3>
+              <h3 className="text-lg font-semibold mb-2 font-heading">No clients found</h3>
               <p className="text-muted-foreground text-center mb-4">
                 {searchTerm ? 'Try adjusting your search terms.' : 'You don\'t have any scheduled calls yet.'}
               </p>
               {!searchTerm && (
-                <Button onClick={() => navigate('/client/new')}>
+                <Button onClick={() => navigate('/client/new')} className="bg-gradient-to-r from-primary to-primary-glow hover:shadow-glow transition-all duration-300">
                   <Plus className="h-4 w-4 mr-2" />
                   Add Your First Client
                 </Button>
@@ -213,7 +224,7 @@ const Dashboard = () => {
         ) : (
           <div className="grid gap-4">
             {filteredClients.map((client) => (
-              <Card key={client.id} className="hover:shadow-md transition-shadow cursor-pointer">
+              <Card key={client.id} className="hover:shadow-glow transition-all duration-300 cursor-pointer border-0 shadow-elegant">
                 <CardContent className="p-6" onClick={() => navigate(`/qualification/${client.id}`)}>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">

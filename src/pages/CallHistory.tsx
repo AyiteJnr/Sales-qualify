@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import ExportDialog from '@/components/ExportDialog';
 import { 
   ArrowLeft, 
   Search, 
@@ -19,7 +20,8 @@ import {
   Download,
   Eye,
   Filter,
-  Loader2
+  Loader2,
+  FileSpreadsheet
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -153,17 +155,27 @@ const CallHistory = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-primary/10">
       {/* Header */}
-      <header className="border-b bg-card">
+      <header className="border-b bg-card/80 backdrop-blur-sm shadow-elegant">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
-            </Button>
-            <Phone className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-bold">Call History & Reports</h1>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="hover:bg-primary/5">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Dashboard
+              </Button>
+              <Phone className="h-6 w-6 text-primary" />
+              <h1 className="text-xl font-bold font-heading bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
+                Call History & Reports
+              </h1>
+            </div>
+            <ExportDialog data={filteredRecords} filename="call-history">
+              <Button variant="outline" className="hover:bg-primary/5">
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                Export Data
+              </Button>
+            </ExportDialog>
           </div>
         </div>
       </header>
@@ -172,7 +184,7 @@ const CallHistory = () => {
       <main className="container mx-auto px-4 py-6">
         <div className="space-y-6">
           {/* Filters and Search */}
-          <Card>
+          <Card className="shadow-elegant border-0">
             <CardContent className="pt-6">
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="flex-1">
@@ -204,31 +216,33 @@ const CallHistory = () => {
 
           {/* Statistics Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card>
+            <Card className="shadow-elegant border-0">
               <CardContent className="pt-6">
-                <div className="text-2xl font-bold">{callRecords.length}</div>
+                <div className="text-2xl font-bold font-heading bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
+                  {callRecords.length}
+                </div>
                 <p className="text-sm text-muted-foreground">Total Calls</p>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="shadow-elegant border-0">
               <CardContent className="pt-6">
-                <div className="text-2xl font-bold text-red-600">
+                <div className="text-2xl font-bold font-heading text-red-600">
                   {callRecords.filter(r => r.qualification_status === 'hot').length}
                 </div>
                 <p className="text-sm text-muted-foreground">Hot Leads</p>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="shadow-elegant border-0">
               <CardContent className="pt-6">
-                <div className="text-2xl font-bold text-yellow-600">
+                <div className="text-2xl font-bold font-heading text-yellow-600">
                   {callRecords.filter(r => r.qualification_status === 'warm').length}
                 </div>
                 <p className="text-sm text-muted-foreground">Warm Leads</p>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="shadow-elegant border-0">
               <CardContent className="pt-6">
-                <div className="text-2xl font-bold">
+                <div className="text-2xl font-bold font-heading bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
                   {callRecords.length > 0 
                     ? Math.round(callRecords.reduce((acc, r) => acc + (r.score || 0), 0) / callRecords.length)
                     : 0}
@@ -241,10 +255,10 @@ const CallHistory = () => {
           {/* Call Records List */}
           <div className="space-y-4">
             {filteredRecords.length === 0 ? (
-              <Card>
+              <Card className="shadow-elegant border-0">
                 <CardContent className="flex flex-col items-center justify-center py-12">
                   <Phone className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No call records found</h3>
+                  <h3 className="text-lg font-semibold mb-2 font-heading">No call records found</h3>
                   <p className="text-muted-foreground text-center">
                     {searchTerm || statusFilter !== 'all' 
                       ? 'Try adjusting your search or filters.'
@@ -254,7 +268,7 @@ const CallHistory = () => {
               </Card>
             ) : (
               filteredRecords.map((record) => (
-                <Card key={record.id} className="hover:shadow-md transition-shadow">
+                <Card key={record.id} className="hover:shadow-glow transition-all duration-300 border-0 shadow-elegant">
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -309,13 +323,13 @@ const CallHistory = () => {
                             View Details
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                           <DialogHeader>
-                            <DialogTitle>Call Details - {selectedRecord?.clients?.full_name}</DialogTitle>
+                            <DialogTitle className="font-heading">Call Details - {selectedRecord?.clients?.full_name}</DialogTitle>
                           </DialogHeader>
                           {selectedRecord && (
-                            <div className="space-y-4">
-                              <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div className="space-y-6">
+                              <div className="grid grid-cols-2 gap-4 text-sm p-4 bg-muted/50 rounded-lg">
                                 <div>
                                   <strong>Date:</strong> {format(new Date(selectedRecord.call_timestamp), 'PPP p')}
                                 </div>
@@ -336,38 +350,53 @@ const CallHistory = () => {
                                 </div>
                               </div>
 
-                              {selectedRecord.transcript_text && (
+                              {Object.keys(selectedRecord.answers || {}).length > 0 && (
                                 <div>
-                                  <h4 className="font-semibold mb-2">Transcript</h4>
-                                  <Textarea
-                                    value={selectedRecord.transcript_text}
-                                    readOnly
-                                    rows={6}
-                                    className="text-sm"
-                                  />
-                                </div>
-                              )}
-
-                              {Object.keys(selectedRecord.answers).length > 0 && (
-                                <div>
-                                  <h4 className="font-semibold mb-2">Qualification Answers</h4>
-                                  <div className="space-y-2">
-                                    {Object.entries(selectedRecord.answers).map(([questionId, answer]) => (
-                                      <div key={questionId} className="p-3 bg-muted rounded-md">
-                                        <div className="text-sm font-medium">Question {questionId}</div>
-                                        <div className="text-sm">{String(answer)}</div>
+                                  <h4 className="font-semibold mb-3 font-heading">Sales Qualification Answers</h4>
+                                  <div className="space-y-3">
+                                    {Object.entries(selectedRecord.answers || {}).map(([questionId, answer], index) => (
+                                      <div key={questionId} className="p-4 bg-card border rounded-lg shadow-sm">
+                                        <div className="text-sm font-medium text-primary mb-2">
+                                          Question {index + 1}
+                                        </div>
+                                        <div className="text-sm mb-2 font-medium">
+                                          {/* Default question text - in a real app this would come from the questions table */}
+                                          {index === 0 && "What is your current budget range for this type of solution?"}
+                                          {index === 1 && "When are you looking to implement a solution?"}
+                                          {index === 2 && "Who else is involved in the decision-making process?"}
+                                          {index === 3 && "What challenges are you currently facing that this would solve?"}
+                                          {index === 4 && "Have you looked at other solutions or providers?"}
+                                          {index >= 5 && `Qualification Question ${index + 1}`}
+                                        </div>
+                                        <div className="text-sm p-3 bg-muted rounded-md border-l-4 border-primary">
+                                          <strong>Answer:</strong> {String(answer)}
+                                        </div>
                                       </div>
                                     ))}
                                   </div>
                                 </div>
                               )}
 
+                              {selectedRecord.transcript_text && (
+                                <div>
+                                  <h4 className="font-semibold mb-3 font-heading">Call Transcript</h4>
+                                  <div className="p-4 bg-card border rounded-lg">
+                                    <Textarea
+                                      value={selectedRecord.transcript_text}
+                                      readOnly
+                                      rows={8}
+                                      className="text-sm bg-transparent border-0 resize-none"
+                                    />
+                                  </div>
+                                </div>
+                              )}
+
                               {selectedRecord.comments && (
                                 <div>
-                                  <h4 className="font-semibold mb-2">Comments</h4>
-                                  <p className="text-sm p-3 bg-muted rounded-md">
-                                    {selectedRecord.comments}
-                                  </p>
+                                  <h4 className="font-semibold mb-3 font-heading">Additional Comments</h4>
+                                  <div className="p-4 bg-card border rounded-lg">
+                                    <p className="text-sm">{selectedRecord.comments}</p>
+                                  </div>
                                 </div>
                               )}
                             </div>

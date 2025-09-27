@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import PerformanceMetrics from '@/components/PerformanceMetrics';
+import UserInvitationDialog from '@/components/UserInvitationDialog';
 import { 
   ArrowLeft, 
   Settings, 
@@ -23,7 +24,10 @@ import {
   Users,
   FileText,
   BarChart3,
-  Loader2
+  Loader2,
+  UserPlus,
+  Shield,
+  KeyRound
 } from 'lucide-react';
 
 interface Question {
@@ -323,17 +327,19 @@ const AdminSettings = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-primary/10">
       {/* Header */}
-      <header className="border-b bg-card">
+      <header className="border-b bg-card/80 backdrop-blur-sm shadow-elegant">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="hover:bg-primary/5">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Dashboard
             </Button>
             <Settings className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-bold">Admin Settings</h1>
+            <h1 className="text-xl font-bold font-heading bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
+              Admin Settings
+            </h1>
           </div>
         </div>
       </header>
@@ -553,21 +559,111 @@ const AdminSettings = () => {
             </TabsContent>
 
             <TabsContent value="users" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    User Management
-                  </CardTitle>
-                  <CardDescription>
-                    Manage sales reps and admin users (Coming Soon)
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="text-center py-12">
-                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">User management features coming soon</p>
-                </CardContent>
-              </Card>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold font-heading">User Management</h2>
+                  <p className="text-muted-foreground">
+                    Invite and manage team members, set roles and permissions
+                  </p>
+                </div>
+                <UserInvitationDialog>
+                  <Button className="bg-gradient-to-r from-primary to-primary-glow hover:shadow-glow transition-all duration-300">
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Invite User
+                  </Button>
+                </UserInvitationDialog>
+              </div>
+
+              <div className="grid gap-6">
+                <Card className="shadow-elegant border-0">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5" />
+                      Team Members
+                    </CardTitle>
+                    <CardDescription>
+                      Manage your sales team and administrators
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gradient-to-r from-primary to-primary-glow rounded-full flex items-center justify-center text-white font-semibold">
+                            A
+                          </div>
+                          <div>
+                            <h4 className="font-semibold">Admin Demo</h4>
+                            <p className="text-sm text-muted-foreground">admin@salesqualify.com</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge className="bg-gradient-to-r from-primary to-primary-glow">Administrator</Badge>
+                          <Button variant="outline" size="sm" className="hover:bg-primary/5">
+                            <KeyRound className="h-4 w-4 mr-2" />
+                            Reset Password
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center text-muted-foreground font-semibold">
+                            S
+                          </div>
+                          <div>
+                            <h4 className="font-semibold">Sales Demo</h4>
+                            <p className="text-sm text-muted-foreground">sales@salesqualify.com</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline">Sales Rep</Badge>
+                          <Button variant="outline" size="sm" className="hover:bg-primary/5">
+                            <KeyRound className="h-4 w-4 mr-2" />
+                            Reset Password
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="shadow-elegant border-0">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Shield className="h-5 w-5" />
+                      Access Control
+                    </CardTitle>
+                    <CardDescription>
+                      Manage permissions and security settings
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div>
+                          <h4 className="font-semibold">Admin Override</h4>
+                          <p className="text-sm text-muted-foreground">Allow admins to access any sales rep dashboard</p>
+                        </div>
+                        <Switch defaultChecked />
+                      </div>
+                      <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div>
+                          <h4 className="font-semibold">Password Requirements</h4>
+                          <p className="text-sm text-muted-foreground">Enforce strong passwords for all users</p>
+                        </div>
+                        <Switch defaultChecked />
+                      </div>
+                      <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div>
+                          <h4 className="font-semibold">Session Timeout</h4>
+                          <p className="text-sm text-muted-foreground">Auto-logout users after inactivity</p>
+                        </div>
+                        <Switch />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
             <TabsContent value="reports" className="space-y-6">
