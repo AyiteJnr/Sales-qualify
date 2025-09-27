@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import PerformanceMetrics from '@/components/PerformanceMetrics';
 import { 
   ArrowLeft, 
   Settings, 
@@ -570,25 +571,22 @@ const AdminSettings = () => {
             </TabsContent>
 
             <TabsContent value="reports" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5" />
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold flex items-center gap-2">
+                    <BarChart3 className="h-6 w-6" />
                     Analytics & Reports
-                  </CardTitle>
-                  <CardDescription>
-                    View detailed analytics and performance reports
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex gap-4">
-                    <Button onClick={() => navigate('/call-history')}>
-                      <FileText className="h-4 w-4 mr-2" />
-                      View Call History
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                  </h2>
+                  <p className="text-muted-foreground">
+                    View performance metrics, analytics, and export data
+                  </p>
+                </div>
+                <Button onClick={() => navigate('/call-history')} variant="outline">
+                  <FileText className="h-4 w-4 mr-2" />
+                  View Call History
+                </Button>
+              </div>
+              <PerformanceMetrics />
             </TabsContent>
 
             <TabsContent value="integrations" className="space-y-6">
