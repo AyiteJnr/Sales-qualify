@@ -1,8 +1,8 @@
-# Welcome to your Lovable project
+# Welcome to your Ayiiq project
 
 ## Project info
 
-**URL**: https://lovable.dev/projects/2a34f793-6a3e-4c88-9f46-682e654af57e
+**URL**: https://Ayiiq/projects/2a34f793-6a3e-4c88-9f46-682e654af57e
 
 ## How can I edit this code?
 
@@ -10,9 +10,9 @@ There are several ways of editing your application.
 
 **Use Lovable**
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/2a34f793-6a3e-4c88-9f46-682e654af57e) and start prompting.
+Simply visit the [Ayiiq](https://Ayiiq/projects/2a34f793-6a3e-4c88-9f46-682e654af57e) and start prompting.
 
-Changes made via Lovable will be committed automatically to this repo.
+Changes made via Ayiiq will be committed automatically to this repo.
 
 **Use your preferred IDE**
 
@@ -62,12 +62,12 @@ This project is built with:
 
 ## How can I deploy this project?
 
-Simply open [Lovable](https://lovable.dev/projects/2a34f793-6a3e-4c88-9f46-682e654af57e) and click on Share -> Publish.
+Simply open [Ayiiq](https://Ayiiq/projects/2a34f793-6a3e-4c88-9f46-682e654af57e) and click on Share -> Publish.
 
-## Can I connect a custom domain to my Lovable project?
+## Can I connect a custom domain to my Ayiiq project?
 
 Yes, you can!
 
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Read more here: [Setting up a custom domain](https://docs.Ayiiq.dev/features/custom-domain#custom-domain)
