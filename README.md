@@ -2,7 +2,7 @@
 
 ## Project info
 
-**URL**: https://Ayiiq/projects/2a34f793-6a3e-4c88-9f46-682e654af57e
+**URL**: https://Ayiiq.dev/projects/2a34f793-6a3e-4c88-9f46-682e654af57e
 
 ## How can I edit this code?
 
