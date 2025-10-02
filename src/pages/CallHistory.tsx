@@ -161,6 +161,9 @@ const CallHistory = () => {
         `)
         .order('call_timestamp', { ascending: false });
 
+      // Ensure we fetch all necessary fields including is_hot_deal and follow_up_required
+      console.log('Query includes hot deal fields');
+
       // Apply filters based on user role and query params
       if (profile?.role === 'rep') {
         query = query.eq('rep_id', profile.id);

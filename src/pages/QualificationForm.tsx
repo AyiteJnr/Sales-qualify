@@ -141,6 +141,8 @@ const QualificationForm = () => {
         answers,
         score: calculatedScore,
         qualification_status: calculatedScore >= 70 ? 'hot' : calculatedScore >= 40 ? 'warm' : 'cold',
+        is_hot_deal: calculatedScore >= 70,
+        follow_up_required: calculatedScore >= 60,
         next_action: calculatedScore >= 70 ? 'Schedule demo' : calculatedScore >= 40 ? 'Follow up call' : 'Archive lead'
       } as const;
 

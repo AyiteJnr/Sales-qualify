@@ -265,6 +265,8 @@ const EnhancedQualificationForm = () => {
         transcript_text: transcript,
         audio_url: audioUrl,
         qualification_status: qualificationStatus,
+        is_hot_deal: calculatedScore >= 80,
+        follow_up_required: calculatedScore >= 70,
         comments: `Qualification completed with score: ${calculatedScore}% on ${new Date().toLocaleDateString()}`,
         next_action: calculatedScore >= 70 ? 'Schedule demo meeting' : 'Follow up in 1 week',
         tags: calculatedScore >= 80 ? ['hot-lead', 'high-priority'] : calculatedScore >= 60 ? ['warm-lead'] : ['cold-lead'],

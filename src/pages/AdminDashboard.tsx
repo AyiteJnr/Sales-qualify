@@ -232,8 +232,8 @@ const AdminDashboard = () => {
         user: call.profiles?.full_name || 'Unknown'
       })) || [];
 
-      // Fetch detailed call records for hot deals
-      const { data: detailedCallRecords } = await supabase
+      // Fetch detailed call records for hot deals with enhanced error handling
+      const { data: detailedCallRecords, error: callRecordsError } = await supabase
         .from('call_records')
         .select(`
           *,
@@ -249,6 +249,12 @@ const AdminDashboard = () => {
         `)
         .order('call_timestamp', { ascending: false });
 
+      if (callRecordsError) {
+        console.error('Error fetching call records:', callRecordsError);
+        throw callRecordsError;
+      }
+
+      console.log('Fetched call records:', detailedCallRecords?.length || 0);
       setCallRecords((detailedCallRecords as unknown as CallRecord[]) || []);
 
       const topPerformerObj = performanceData.length > 0
@@ -575,7 +581,7 @@ const AdminDashboard = () => {
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
-              onClick={fetchDashboardData}
+              onClick={() => fetchDashboardData(true)}
               className="text-gray-600"
             >
               <RefreshCw className="h-4 w-4 mr-2" />

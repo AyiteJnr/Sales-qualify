@@ -34,6 +34,7 @@ interface SalesStats {
   avgScore: number;
   thisWeekCalls: number;
   pendingFollowUps: number;
+  hotDeals: number;
 }
 
 interface MyLead {
@@ -69,7 +70,8 @@ const SalesDashboard = () => {
     conversionRate: 0,
     avgScore: 0,
     thisWeekCalls: 0,
-    pendingFollowUps: 0
+    pendingFollowUps: 0,
+    hotDeals: 0
   });
   const [myLeads, setMyLeads] = useState<MyLead[]>([]);
   const [recentCalls, setRecentCalls] = useState<RecentCall[]>([]);
@@ -99,7 +101,7 @@ const SalesDashboard = () => {
         .eq('assigned_rep_id', user.id)
         .order('created_at', { ascending: false });
 
-      // Fetch my call records
+      // Fetch my call records with enhanced data
       const { data: callsData } = await supabase
         .from('call_records')
         .select(`
@@ -108,7 +110,9 @@ const SalesDashboard = () => {
           score,
           qualification_status,
           next_action,
-          clients!client_id(full_name)
+          is_hot_deal,
+          follow_up_required,
+          clients!client_id(full_name, company_name, deal_value)
         `)
         .eq('rep_id', user.id)
         .order('call_timestamp', { ascending: false });
@@ -130,6 +134,10 @@ const SalesDashboard = () => {
         new Date(call.call_timestamp) >= thisWeek
       ).length || 0;
 
+      const hotDeals = callsData?.filter(call => 
+        call.qualification_status === 'hot' || call.is_hot_deal
+      ).length || 0;
+
       const avgScore = callsData && callsData.length > 0
         ? callsData.reduce((sum, call) => sum + (call.score || 0), 0) / callsData.length
         : 0;
@@ -147,7 +155,8 @@ const SalesDashboard = () => {
         thisWeekCalls,
         pendingFollowUps: leadsData?.filter(lead => 
           lead.status === 'scheduled' || lead.status === 'in_progress'
-        ).length || 0
+        ).length || 0,
+        hotDeals
       });
 
       setMyLeads(leadsData || []);
@@ -258,7 +267,7 @@ const SalesDashboard = () => {
         >
           {/* Stats Overview */}
           <motion.div 
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8"
             variants={itemVariants}
           >
             <Card className="hover:shadow-lg transition-all duration-300">
@@ -316,11 +325,25 @@ const SalesDashboard = () => {
                 </div>
               </CardContent>
             </Card>
+
+            <Card className="hover:shadow-lg transition-all duration-300 border-red-200 bg-gradient-to-br from-red-50 to-orange-50">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-red-600">🔥 Hot Deals</p>
+                    <p className="text-3xl font-bold text-red-700">{stats.hotDeals}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                    <Star className="h-6 w-6 text-red-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </motion.div>
 
           {/* Quick Actions */}
           <motion.div 
-            className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
+            className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8"
             variants={itemVariants}
           >
             <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer" onClick={() => navigate('/client/new')}>
@@ -360,6 +383,16 @@ const SalesDashboard = () => {
                 </div>
                 <h3 className="font-semibold mb-2">Call History</h3>
                 <p className="text-sm text-gray-600">Review your past calls and results</p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer border-red-200 bg-gradient-to-br from-red-50 to-orange-50" onClick={() => navigate('/call-history?hot=true')}>
+              <CardContent className="p-6 text-center">
+                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <Star className="h-6 w-6 text-red-600" />
+                </div>
+                <h3 className="font-semibold mb-2 text-red-700">🔥 Hot Deals</h3>
+                <p className="text-sm text-red-600">View and manage your hot leads</p>
               </CardContent>
             </Card>
           </motion.div>
@@ -474,6 +507,70 @@ const SalesDashboard = () => {
               </CardContent>
             </Card>
           </motion.div>
+
+          {/* Hot Deals Section */}
+          {stats.hotDeals > 0 && (
+            <motion.div variants={itemVariants} className="mt-8">
+              <Card className="border-red-200 bg-gradient-to-br from-red-50 to-orange-50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-red-700">
+                    <Star className="h-5 w-5" />
+                    🔥 My Hot Deals ({stats.hotDeals})
+                  </CardTitle>
+                  <CardDescription className="text-red-600">
+                    High-priority leads that need immediate attention
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {recentCalls
+                      .filter(call => call.qualification_status === 'hot')
+                      .slice(0, 3)
+                      .map((call) => (
+                        <div key={call.id} className="flex items-center justify-between p-4 bg-white rounded-lg border border-red-200 shadow-sm">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                              <span className="text-lg">🔥</span>
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-900">{call.client_name}</p>
+                              <p className="text-sm text-gray-600">
+                                Score: {call.score}/100 • {new Date(call.call_timestamp).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <Badge className="bg-red-600 text-white">
+                              HOT
+                            </Badge>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => navigate(`/qualification/${call.id}`)}
+                              className="border-red-200 text-red-600 hover:bg-red-50"
+                            >
+                              Follow Up
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                  {stats.hotDeals > 3 && (
+                    <div className="text-center mt-4">
+                      <Button
+                        variant="outline"
+                        onClick={() => navigate('/call-history?hot=true')}
+                        className="border-red-200 text-red-600 hover:bg-red-50"
+                      >
+                        View All {stats.hotDeals} Hot Deals
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
 
           {/* Recent Calls */}
           {recentCalls.length > 0 && (
