@@ -27,6 +27,8 @@ import {
   Filter,
   Plus
 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import Papa from 'papaparse';
 
 interface DashboardStats {
   totalLeads: number;
@@ -72,6 +74,9 @@ const AdminDashboard = () => {
   const [repPerformance, setRepPerformance] = useState<RepPerformance[]>([]);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showUsersModal, setShowUsersModal] = useState(false);
+  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
 
   useEffect(() => {
     console.log('AdminDashboard useEffect - profile:', profile);
@@ -185,6 +190,51 @@ const AdminDashboard = () => {
       console.error('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAllUsers = async () => {
+    setUsersLoading(true);
+    try {
+      const { data, error } = await supabase.from('profiles').select('*').order('full_name');
+      if (error) throw error;
+      setAllUsers(data || []);
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to fetch users', variant: 'destructive' });
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  const handleExportUsers = async () => {
+    setUsersLoading(true);
+    try {
+      const { data, error } = await supabase.from('profiles').select('*').order('full_name');
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        toast({ title: 'No Users', description: 'No users found to export', variant: 'destructive' });
+        return;
+      }
+      const csv = Papa.unparse(data.map(u => ({
+        Name: u.full_name,
+        Email: u.email,
+        Role: u.role,
+        Phone: u.phone || ''
+      })));
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `users_export_${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast({ title: 'Export Successful', description: 'User data exported as CSV.' });
+    } catch (error) {
+      toast({ title: 'Export Failed', description: 'Failed to export users', variant: 'destructive' });
+    } finally {
+      setUsersLoading(false);
     }
   };
 
@@ -551,7 +601,7 @@ const AdminDashboard = () => {
                         <UserPlus className="h-4 w-4 mr-2" />
                         Invite New User
                       </Button>
-                      <Button variant="outline" className="w-full">
+                      <Button variant="outline" className="w-full" onClick={() => { setShowUsersModal(true); fetchAllUsers(); }}>
                         <Users className="h-4 w-4 mr-2" />
                         View All Users
                       </Button>
@@ -577,7 +627,7 @@ const AdminDashboard = () => {
                         <FileText className="h-4 w-4 mr-2" />
                         Import from Google Sheets
                       </Button>
-                      <Button variant="outline" className="w-full">
+                      <Button variant="outline" className="w-full" onClick={handleExportUsers}>
                         <Download className="h-4 w-4 mr-2" />
                         Export Data
                       </Button>
@@ -589,6 +639,42 @@ const AdminDashboard = () => {
           </motion.div>
         </motion.div>
       </div>
+      <Dialog open={showUsersModal} onOpenChange={setShowUsersModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>All Users</DialogTitle>
+          </DialogHeader>
+          {usersLoading ? (
+            <div className="p-6 text-center">Loading...</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr>
+                    <th className="px-2 py-1 text-left">Name</th>
+                    <th className="px-2 py-1 text-left">Email</th>
+                    <th className="px-2 py-1 text-left">Role</th>
+                    <th className="px-2 py-1 text-left">Phone</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allUsers.map(user => (
+                    <tr key={user.id} className="border-b">
+                      <td className="px-2 py-1">{user.full_name}</td>
+                      <td className="px-2 py-1">{user.email}</td>
+                      <td className="px-2 py-1">{user.role}</td>
+                      <td className="px-2 py-1">{user.phone || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <div className="flex justify-end pt-4">
+            <Button variant="outline" onClick={() => setShowUsersModal(false)}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
