@@ -561,17 +561,23 @@ const AdminSettings = () => {
             <TabsContent value="users" className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold font-heading">User Management</h2>
+                  <h2 className="text-2xl font-bold font-heading">User Management & Permissions</h2>
                   <p className="text-muted-foreground">
-                    Invite and manage team members, set roles and permissions
+                    Invite and manage team members, assign roles, view call history, and manage hot deals
                   </p>
                 </div>
-                <UserInvitationDialog>
-                  <Button className="bg-gradient-to-r from-primary to-primary-glow hover:shadow-glow transition-all duration-300">
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Invite User
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => navigate('/call-history')}>
+                    <FileText className="h-4 w-4 mr-2" />
+                    View Call History
                   </Button>
-                </UserInvitationDialog>
+                  <UserInvitationDialog>
+                    <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white">
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Invite User
+                    </Button>
+                  </UserInvitationDialog>
+                </div>
               </div>
 
               <div className="grid gap-6">

@@ -34,7 +34,7 @@
         
         <h3>1. Authentication Issues</h3>
         <p class="error">Error: "Invalid JWT" or "User not authenticated"</p>
-        <p><strong>Solution:</strong> Make sure you're logged in with a valid demo account</p>
+        <p><strong>Solution:</strong> Make sure you're logged in with a valid account</p>
         
         <h3>2. Database Permission Issues</h3>
         <p class="error">Error: "permission denied for table clients"</p>
@@ -58,22 +58,15 @@ WHERE tablename = 'clients';
         <p class="error">Error: "Profile not found" or user/profile is null</p>
         <p><strong>Solution:</strong> Create the missing profile:</p>
         <textarea readonly>
--- Insert missing profiles for demo users
+-- Insert missing profile for current user
 INSERT INTO public.profiles (id, email, full_name, role)
 SELECT 
   id,
   email,
-  CASE 
-    WHEN email = 'admin@salesqualify.com' THEN 'Admin User'
-    WHEN email = 'sales@salesqualify.com' THEN 'Sales Rep'
-    ELSE email
-  END as full_name,
-  CASE 
-    WHEN email = 'admin@salesqualify.com' THEN 'admin'::user_role
-    ELSE 'rep'::user_role
-  END as role
+  coalesce(raw_user_meta_data->>'full_name', email) as full_name,
+  'rep'::user_role as role
 FROM auth.users 
-WHERE email IN ('admin@salesqualify.com', 'sales@salesqualify.com')
+WHERE id = 'YOUR_USER_ID'
 ON CONFLICT (id) DO UPDATE SET
   role = EXCLUDED.role,
   full_name = EXCLUDED.full_name;

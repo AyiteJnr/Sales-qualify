@@ -14,7 +14,7 @@ const Auth = () => {
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [signupData, setSignupData] = useState({ email: '', password: '', fullName: '' });
   const [resetData, setResetData] = useState({ email: '' });
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, signUp, resetPassword, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -89,11 +89,21 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      // For now, show a placeholder message - implement actual reset logic later
-      toast({
-        title: "Password Reset Requested",
-        description: "If an account with this email exists, you will receive reset instructions.",
-      });
+      const { error } = await resetPassword(resetData.email);
+      
+      if (error) {
+        toast({
+          title: "Reset Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Reset Link Sent",
+          description: "If an account with this email exists, you will receive reset instructions.",
+        });
+        setResetData({ email: '' });
+      }
     } catch (error: any) {
       toast({
         title: "Reset Failed",
@@ -105,99 +115,35 @@ const Auth = () => {
     }
   };
 
-  const handleDemoLogin = async (role: 'admin' | 'sales') => {
-    setIsLoading(true);
-    const credentials = role === 'admin' 
-      ? { email: 'admin@salesqualify.com', password: 'admin123' }
-      : { email: 'sales@salesqualify.com', password: 'sales123' };
-
-    try {
-      console.log('Attempting demo login for:', credentials.email);
-      const { error } = await signIn(credentials.email, credentials.password);
-      
-      if (error) {
-        console.error('Demo login error:', error);
-        
-        // If user doesn't exist, try to create them
-        if (error.message?.includes('Invalid login credentials')) {
-          toast({
-            title: "Demo User Setup Required",
-            description: "Demo users need to be created. Please sign up with the demo credentials first.",
-            variant: "destructive",
-          });
-          
-          // Automatically try to sign up the demo user
-          const { error: signUpError } = await signUp(
-            credentials.email, 
-            credentials.password, 
-            role === 'admin' ? 'Admin User' : 'Sales Rep',
-            role === 'admin' ? 'admin' : 'rep'
-          );
-          
-          if (signUpError) {
-            toast({
-              title: "Demo Setup Failed",
-              description: `Failed to create demo user: ${signUpError.message}`,
-              variant: "destructive",
-            });
-          } else {
-            toast({
-              title: "Demo User Created",
-              description: "Please check your email to verify the account, or try logging in again.",
-            });
-          }
-        } else {
-          toast({
-            title: "Demo Login Failed",
-            description: error.message,
-            variant: "destructive",
-          });
-        }
-      } else {
-        console.log('Demo login successful');
-        toast({
-          title: `Welcome ${role === 'admin' ? 'Admin' : 'Sales Rep'}!`,
-          description: "Demo login successful.",
-        });
-        navigate('/dashboard');
-      }
-    } catch (error: any) {
-      console.error('Demo login exception:', error);
-      toast({
-        title: "Demo Login Failed",
-        description: error.message || 'An unexpected error occurred',
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-primary/10 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Phone className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold font-heading bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <div className="relative">
+              <Phone className="h-10 w-10 text-blue-600 dark:text-blue-400" />
+              <div className="absolute -inset-1 bg-blue-600/20 rounded-full blur-sm"></div>
+            </div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
               SalesQualify
             </h1>
           </div>
-          <p className="text-muted-foreground">Professional sales qualification platform</p>
+          <p className="text-slate-600 dark:text-slate-400 text-lg">Professional sales qualification platform</p>
         </div>
 
-        <Card className="shadow-elegant border-0">
-          <CardHeader>
-            <CardTitle className="font-heading">Access Your Account</CardTitle>
-            <CardDescription>Sign in to continue or create a new account</CardDescription>
+        <Card className="shadow-2xl border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+          <CardHeader className="text-center pb-4">
+            <CardTitle className="text-2xl font-bold text-slate-900 dark:text-slate-100">Welcome Back</CardTitle>
+            <CardDescription className="text-slate-600 dark:text-slate-400">Sign in to your account or create a new one</CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="login" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="login">Login</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
-                <TabsTrigger value="reset">Reset</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-3 bg-slate-100 dark:bg-slate-700 p-1">
+                <TabsTrigger value="login" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-600">Sign In</TabsTrigger>
+                <TabsTrigger value="signup" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-600">Sign Up</TabsTrigger>
+                <TabsTrigger value="reset" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-600">Reset</TabsTrigger>
               </TabsList>
 
               <TabsContent value="login">
@@ -212,13 +158,27 @@ const Auth = () => {
                         placeholder="Enter your email"
                         value={loginData.email}
                         onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
-                        className="pl-10"
+                        className="pl-10 h-12 bg-slate-50 dark:bg-slate-700 border-slate-200 dark:border-slate-600 focus:border-blue-500 focus:ring-blue-500"
                         required
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="login-password">Password</Label>
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="login-password">Password</Label>
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="p-0 h-auto text-sm text-blue-600 hover:text-blue-700"
+                        onClick={() => {
+                          const tabs = document.querySelector('[role="tablist"]');
+                          const resetTab = tabs?.querySelector('[value="reset"]') as HTMLElement;
+                          resetTab?.click();
+                        }}
+                      >
+                        Forgot password?
+                      </Button>
+                    </div>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -227,12 +187,12 @@ const Auth = () => {
                         placeholder="Enter your password"
                         value={loginData.password}
                         onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                        className="pl-10"
+                        className="pl-10 h-12 bg-slate-50 dark:bg-slate-700 border-slate-200 dark:border-slate-600 focus:border-blue-500 focus:ring-blue-500"
                         required
                       />
                     </div>
                   </div>
-                  <Button type="submit" className="w-full bg-gradient-to-r from-primary to-primary-glow hover:shadow-glow transition-all duration-300" disabled={isLoading}>
+                  <Button type="submit" className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5" disabled={isLoading}>
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -257,7 +217,7 @@ const Auth = () => {
                         placeholder="Enter your full name"
                         value={signupData.fullName}
                         onChange={(e) => setSignupData({ ...signupData, fullName: e.target.value })}
-                        className="pl-10"
+                        className="pl-10 h-12 bg-slate-50 dark:bg-slate-700 border-slate-200 dark:border-slate-600 focus:border-green-500 focus:ring-green-500"
                         required
                       />
                     </div>
@@ -272,7 +232,7 @@ const Auth = () => {
                         placeholder="Enter your email"
                         value={signupData.email}
                         onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
-                        className="pl-10"
+                        className="pl-10 h-12 bg-slate-50 dark:bg-slate-700 border-slate-200 dark:border-slate-600 focus:border-green-500 focus:ring-green-500"
                         required
                       />
                     </div>
@@ -284,15 +244,16 @@ const Auth = () => {
                       <Input
                         id="signup-password"
                         type="password"
-                        placeholder="Create a password"
+                        placeholder="Create a password (min. 6 characters)"
                         value={signupData.password}
                         onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
-                        className="pl-10"
+                        className="pl-10 h-12 bg-slate-50 dark:bg-slate-700 border-slate-200 dark:border-slate-600 focus:border-green-500 focus:ring-green-500"
                         required
+                        minLength={6}
                       />
                     </div>
                   </div>
-                  <Button type="submit" className="w-full bg-gradient-to-r from-primary to-primary-glow hover:shadow-glow transition-all duration-300" disabled={isLoading}>
+                  <Button type="submit" className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5" disabled={isLoading}>
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -317,12 +278,12 @@ const Auth = () => {
                         placeholder="Enter your email for password reset"
                         value={resetData.email}
                         onChange={(e) => setResetData({ email: e.target.value })}
-                        className="pl-10"
+                        className="pl-10 h-12 bg-slate-50 dark:bg-slate-700 border-slate-200 dark:border-slate-600 focus:border-orange-500 focus:ring-orange-500"
                         required
                       />
                     </div>
                   </div>
-                  <Button type="submit" className="w-full bg-gradient-to-r from-primary to-primary-glow hover:shadow-glow transition-all duration-300" disabled={isLoading}>
+                  <Button type="submit" className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white font-semibold py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5" disabled={isLoading}>
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -336,36 +297,6 @@ const Auth = () => {
               </TabsContent>
             </Tabs>
 
-            {/* Demo Login Section */}
-            <div className="mt-6 pt-6 border-t">
-              <p className="text-sm text-muted-foreground text-center mb-3">
-                Try our demo accounts:
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleDemoLogin('admin')}
-                  disabled={isLoading}
-                  className="text-xs hover:bg-primary/5"
-                >
-                  Admin Demo
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleDemoLogin('sales')}
-                  disabled={isLoading}
-                  className="text-xs hover:bg-primary/5"
-                >
-                  Sales Demo
-                </Button>
-              </div>
-              <div className="text-xs text-muted-foreground mt-2 space-y-1">
-                <p><strong>Admin:</strong> admin@salesqualify.com / admin123</p>
-                <p><strong>Sales:</strong> sales@salesqualify.com / sales123</p>
-              </div>
-            </div>
           </CardContent>
         </Card>
 

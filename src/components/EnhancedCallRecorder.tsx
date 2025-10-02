@@ -121,6 +121,17 @@ const EnhancedCallRecorder = ({
         
         // Stop all tracks
         stream.getTracks().forEach(track => track.stop());
+        
+        // Automatically start transcription for real-time operation
+        toast({
+          title: "Recording Complete",
+          description: "Starting automatic transcription...",
+        });
+        
+        // Start transcription immediately
+        setTimeout(() => {
+          transcribeAudio(audioBlob);
+        }, 500); // Small delay to ensure state is updated
       };
 
       mediaRecorder.start(1000); // Collect data every second
@@ -250,6 +261,19 @@ const EnhancedCallRecorder = ({
         setUploadedFile(file);
         setUploadTranscript('');
         setUploadComplete(false);
+        
+        // Show upload success and start automatic transcription
+        toast({
+          title: "File Uploaded",
+          description: "Starting automatic transcription...",
+        });
+        
+        // Automatically start transcription for uploaded file
+        setTimeout(() => {
+          // Create a temporary reference to the file for transcription
+          const tempFile = file;
+          transcribeUploadedFileDirectly(tempFile);
+        }, 500);
       } else {
         toast({
           title: "Invalid File",
@@ -292,6 +316,68 @@ const EnhancedCallRecorder = ({
           audio: base64,
           mimeType: uploadedFile.type,
           fileName: uploadedFile.name
+        }
+      });
+
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw error;
+      }
+
+      console.log('Transcription response:', data);
+      
+      const transcript = data?.text || 'No transcript available';
+      setUploadTranscript(transcript);
+      setUploadComplete(true);
+      onTranscriptComplete(transcript);
+
+      toast({
+        title: "Transcription Complete",
+        description: "Your uploaded file has been transcribed successfully.",
+      });
+
+    } catch (error: any) {
+      console.error('Error transcribing uploaded file:', error);
+      toast({
+        title: "Transcription Error",
+        description: error.message || "Failed to transcribe uploaded file. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadTranscribing(false);
+    }
+  };
+
+  const transcribeUploadedFileDirectly = async (file: File) => {
+    try {
+      setIsUploadTranscribing(true);
+      
+      console.log('Starting transcription for uploaded file:', file.name, file.size, 'bytes');
+      
+      // Check file size
+      if (file.size > 25 * 1024 * 1024) {
+        throw new Error('Audio file too large. Please use a file smaller than 25MB.');
+      }
+      
+      // Convert file to base64 using FileReader
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          const base64Data = result.split(',')[1];
+          resolve(base64Data);
+        };
+        reader.onerror = () => reject(new Error('Failed to read uploaded file'));
+        reader.readAsDataURL(file);
+      });
+      
+      console.log('Uploaded file converted to base64, length:', base64.length);
+      
+      const { data, error } = await supabase.functions.invoke('transcribe-audio', {
+        body: { 
+          audio: base64,
+          mimeType: file.type,
+          fileName: file.name
         }
       });
 

@@ -5,9 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import ExportDialog from '@/components/ExportDialog';
 import { 
   ArrowLeft, 
@@ -21,27 +23,48 @@ import {
   Eye,
   Filter,
   Loader2,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Users,
+  TrendingUp,
+  MessageSquare,
+  Send,
+  AlertCircle
 } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface CallRecord {
   id: string;
   client_id: string;
+  rep_id: string;
   call_timestamp: string;
   score: number;
   qualification_status: string;
   transcript_text: string | null;
   audio_url: string | null;
+  recording_url: string | null;
   next_action: string | null;
   comments: string | null;
   answers: any;
+  is_hot_deal: boolean;
+  follow_up_required: boolean;
+  call_duration: number;
   clients: {
     full_name: string;
     company_name: string | null;
     email: string | null;
     phone: string | null;
+    deal_value: number | null;
   };
+  profiles: {
+    full_name: string;
+    email: string;
+  } | null;
+}
+
+interface SalesRep {
+  id: string;
+  full_name: string;
+  email: string;
 }
 
 const CallHistory = () => {
@@ -51,17 +74,41 @@ const CallHistory = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedRecord, setSelectedRecord] = useState<CallRecord | null>(null);
+  const [salesReps, setSalesReps] = useState<SalesRep[]>([]);
+  const [selectedRep, setSelectedRep] = useState<string>('all');
+  const [hotDealsOnly, setHotDealsOnly] = useState(false);
+  const [followUpMessage, setFollowUpMessage] = useState('');
+  const [sendingFollowUp, setSendingFollowUp] = useState(false);
   
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { profile } = useAuth();
 
   useEffect(() => {
     fetchCallRecords();
-  }, []);
+    if (profile?.role === 'admin') {
+      fetchSalesReps();
+    }
+  }, [profile]);
 
   useEffect(() => {
     filterRecords();
-  }, [callRecords, searchTerm, statusFilter]);
+  }, [callRecords, searchTerm, statusFilter, selectedRep, hotDealsOnly]);
+
+  const fetchSalesReps = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .eq('role', 'rep')
+        .order('full_name');
+
+      if (error) throw error;
+      setSalesReps(data || []);
+    } catch (error: any) {
+      console.error('Error fetching sales reps:', error);
+    }
+  };
 
   const fetchCallRecords = async () => {
     try {
@@ -73,7 +120,12 @@ const CallHistory = () => {
             full_name,
             company_name,
             email,
-            phone
+            phone,
+            deal_value
+          ),
+          profiles!rep_id (
+            full_name,
+            email
           )
         `)
         .order('call_timestamp', { ascending: false });
@@ -99,7 +151,8 @@ const CallHistory = () => {
       filtered = filtered.filter(record => 
         record.clients?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         record.clients?.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        record.clients?.email?.toLowerCase().includes(searchTerm.toLowerCase())
+        record.clients?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        record.profiles?.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -107,7 +160,55 @@ const CallHistory = () => {
       filtered = filtered.filter(record => record.qualification_status === statusFilter);
     }
 
+    if (selectedRep !== 'all') {
+      filtered = filtered.filter(record => record.rep_id === selectedRep);
+    }
+
+    if (hotDealsOnly) {
+      filtered = filtered.filter(record => record.is_hot_deal || record.qualification_status === 'hot');
+    }
+
     setFilteredRecords(filtered);
+  };
+
+  const sendFollowUpRequest = async (callRecord: CallRecord) => {
+    if (!followUpMessage.trim()) {
+      toast({
+        title: "Message Required",
+        description: "Please enter a follow-up message",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSendingFollowUp(true);
+    try {
+      const { error } = await supabase.rpc('assign_lead_to_rep', {
+        p_client_id: callRecord.client_id,
+        p_rep_id: callRecord.rep_id,
+        p_admin_id: profile?.id,
+        p_notes: followUpMessage,
+        p_priority: 'high'
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Follow-up Sent",
+        description: "Your follow-up request has been sent to the sales rep",
+      });
+
+      setFollowUpMessage('');
+    } catch (error: any) {
+      console.error('Error sending follow-up:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send follow-up request",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingFollowUp(false);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -365,32 +466,97 @@ const CallHistory = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
         <div className="space-y-6">
-          {/* Filters and Search */}
-          <Card className="shadow-elegant border-0">
+          {/* Enhanced Filters and Search */}
+          <Card className="border-2 border-blue-200 dark:border-blue-800">
+            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950">
+              <CardTitle className="flex items-center gap-2 text-blue-800 dark:text-blue-200">
+                <Filter className="h-5 w-5" />
+                Advanced Call History Filters
+              </CardTitle>
+              <CardDescription>
+                Search and filter call records {profile?.role === 'admin' ? 'across all sales reps' : 'for your calls'}
+              </CardDescription>
+            </CardHeader>
             <CardContent className="pt-6">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search by client name, company, or email..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
+              <div className="space-y-4">
+                {/* Search Bar */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by client name, company, email, or sales rep..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 h-12"
+                  />
                 </div>
-                <div className="flex gap-2">
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-3 py-2 border rounded-md bg-background"
-                  >
-                    <option value="all">All Status</option>
-                    <option value="hot">Hot</option>
-                    <option value="warm">Warm</option>
-                    <option value="cold">Cold</option>
-                  </select>
+                
+                {/* Filter Controls */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Status Filter */}
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Qualification Status</label>
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="hot">🔥 Hot Leads</SelectItem>
+                        <SelectItem value="warm">🌡️ Warm Leads</SelectItem>
+                        <SelectItem value="cold">❄️ Cold Leads</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Sales Rep Filter (Admin Only) */}
+                  {profile?.role === 'admin' && (
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Sales Representative</label>
+                      <Select value={selectedRep} onValueChange={setSelectedRep}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="All Sales Reps" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Sales Reps</SelectItem>
+                          {salesReps.map((rep) => (
+                            <SelectItem key={rep.id} value={rep.id}>
+                              👤 {rep.full_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {/* Hot Deals Toggle */}
+                  <div className="flex items-center space-x-2 pt-6">
+                    <input
+                      type="checkbox"
+                      id="hot-deals"
+                      checked={hotDealsOnly}
+                      onChange={(e) => setHotDealsOnly(e.target.checked)}
+                      className="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-500"
+                    />
+                    <label htmlFor="hot-deals" className="text-sm font-medium text-red-600">
+                      🔥 Hot Deals Only
+                    </label>
+                  </div>
+
+                  {/* Quick Actions */}
+                  <div className="flex gap-2 pt-6">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setSearchTerm('');
+                        setStatusFilter('all');
+                        setSelectedRep('all');
+                        setHotDealsOnly(false);
+                      }}
+                    >
+                      Clear Filters
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -450,11 +616,14 @@ const CallHistory = () => {
               </Card>
             ) : (
               filteredRecords.map((record) => (
-                <Card key={record.id} className="hover:shadow-glow transition-all duration-300 border-0 shadow-elegant">
+                <Card key={record.id} className={`hover:shadow-lg transition-all duration-300 ${record.is_hot_deal || record.qualification_status === 'hot' ? 'border-2 border-red-300 bg-red-50/50 dark:bg-red-950/20' : 'border-0 shadow-elegant'}`}>
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
+                          {(record.is_hot_deal || record.qualification_status === 'hot') && (
+                            <span className="text-lg">🔥</span>
+                          )}
                           <h3 className="text-lg font-semibold">
                             {record.clients?.full_name || 'Unknown Client'}
                           </h3>
@@ -467,27 +636,42 @@ const CallHistory = () => {
                               {record.score}/100
                             </Badge>
                           )}
+                          {record.follow_up_required && (
+                            <Badge variant="destructive" className="animate-pulse">
+                              <AlertCircle className="h-3 w-3 mr-1" />
+                              Follow-up Required
+                            </Badge>
+                          )}
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-muted-foreground mb-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 text-sm text-muted-foreground mb-4">
                           {record.clients?.company_name && (
-                            <div>Company: {record.clients.company_name}</div>
+                            <div>🏢 Company: {record.clients.company_name}</div>
                           )}
                           {record.clients?.email && (
-                            <div>Email: {record.clients.email}</div>
+                            <div>📧 Email: {record.clients.email}</div>
+                          )}
+                          {profile?.role === 'admin' && record.profiles && (
+                            <div>👤 Sales Rep: {record.profiles.full_name}</div>
                           )}
                           <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4" />
                             {format(new Date(record.call_timestamp), 'MMM d, yyyy h:mm a')}
                           </div>
+                          {record.call_duration > 0 && (
+                            <div>⏱️ Duration: {Math.floor(record.call_duration / 60)}m {record.call_duration % 60}s</div>
+                          )}
+                          {record.clients?.deal_value && (
+                            <div>💰 Value: ${record.clients.deal_value.toLocaleString()}</div>
+                          )}
                           {record.next_action && (
-                            <div>Next Action: {record.next_action}</div>
+                            <div>📋 Next: {record.next_action}</div>
                           )}
                         </div>
 
                         {record.comments && (
                           <p className="text-sm mb-4 p-3 bg-muted rounded-md">
-                            {record.comments}
+                            💭 {record.comments}
                           </p>
                         )}
                       </div>
@@ -619,6 +803,73 @@ const CallHistory = () => {
                         <Button variant="outline" size="sm">
                           <Play className="h-4 w-4 mr-2" />
                           Play Recording
+                        </Button>
+                      )}
+
+                      {/* Admin Follow-up Actions */}
+                      {profile?.role === 'admin' && (record.is_hot_deal || record.qualification_status === 'hot') && (
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button size="sm" className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white">
+                              <Send className="h-4 w-4 mr-2" />
+                              Send Follow-up
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Send Follow-up Request</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div>
+                                <p className="text-sm text-muted-foreground mb-2">
+                                  Send a priority follow-up request to {record.profiles?.full_name} for hot lead: {record.clients?.full_name}
+                                </p>
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium mb-2 block">Follow-up Message</label>
+                                <Textarea
+                                  placeholder="Please follow up with this hot lead immediately. The client showed strong interest and is ready to move forward..."
+                                  value={followUpMessage}
+                                  onChange={(e) => setFollowUpMessage(e.target.value)}
+                                  rows={4}
+                                />
+                              </div>
+                              <div className="flex gap-2 justify-end">
+                                <Button variant="outline" onClick={() => setFollowUpMessage('')}>
+                                  Cancel
+                                </Button>
+                                <Button 
+                                  onClick={() => sendFollowUpRequest(record)}
+                                  disabled={sendingFollowUp}
+                                  className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white"
+                                >
+                                  {sendingFollowUp ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                      Sending...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Send className="h-4 w-4 mr-2" />
+                                      Send Request
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      )}
+
+                      {/* Quick Action for Non-Hot Deals */}
+                      {profile?.role === 'admin' && record.qualification_status !== 'hot' && record.score >= 60 && (
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="border-yellow-500 text-yellow-700 hover:bg-yellow-50"
+                        >
+                          <TrendingUp className="h-4 w-4 mr-2" />
+                          Mark as Potential
                         </Button>
                       )}
                     </div>
