@@ -86,7 +86,7 @@ const GoogleSheetsImport = () => {
         location: location,
         notes: note,
         selected: true,
-        assignedRepId: defaultAssignedRep || ''
+        assignedRepId: defaultAssignedRep || 'unassigned',
       });
     }
 
@@ -183,7 +183,7 @@ const GoogleSheetsImport = () => {
         notes: lead.notes,
         status: 'scheduled' as const,
         source: 'google_sheets',
-        assigned_rep_id: lead.assignedRepId || null,
+        assigned_rep_id: lead.assignedRepId === 'unassigned' ? null : lead.assignedRepId,
       }));
 
       const { error } = await supabase
@@ -220,7 +220,7 @@ const GoogleSheetsImport = () => {
     setLeads(prev => prev.map(lead => ({ ...lead, selected: !allSelected })));
   };
 
-  const updateLeadAssignment = (leadId: string, repId: string | null) => {
+  const updateLeadAssignment = (leadId: string, repId: string) => {
     setLeads(prev => prev.map(lead => 
       lead.id === leadId ? { ...lead, assignedRepId: repId } : lead
     ));
@@ -365,7 +365,7 @@ const GoogleSheetsImport = () => {
                             <TableCell>
                               <Select 
                                 value={lead.assignedRepId || 'unassigned'} 
-                                onValueChange={(value) => updateLeadAssignment(lead.id, value === 'unassigned' ? null : value)}
+                                onValueChange={(value) => updateLeadAssignment(lead.id, value === 'unassigned' ? 'unassigned' : value)}
                               >
                                 <SelectTrigger className="w-40">
                                   <SelectValue placeholder="Assign..." />
