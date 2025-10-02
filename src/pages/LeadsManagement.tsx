@@ -81,13 +81,35 @@ const LeadsManagement = () => {
 
   // Fetch leads and reps
   useEffect(() => {
+    // Test database connection first
+    testDatabaseConnection();
     fetchLeads();
     fetchReps();
   }, []);
 
+  const testDatabaseConnection = async () => {
+    try {
+      console.log('Testing database connection...');
+      const { data, error } = await supabase
+        .from('clients')
+        .select('count')
+        .limit(1);
+      
+      if (error) {
+        console.error('Database connection test failed:', error);
+      } else {
+        console.log('Database connection test successful:', data);
+      }
+    } catch (error) {
+      console.error('Database connection test error:', error);
+    }
+  };
+
   const fetchLeads = async () => {
     try {
       setLoading(true);
+      console.log('Fetching leads...');
+      
       const { data, error } = await supabase
         .from('clients')
         .select(`
@@ -96,13 +118,18 @@ const LeadsManagement = () => {
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase fetch error:', error);
+        throw error;
+      }
+      
+      console.log('Fetched leads:', data);
       setLeads(data || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching leads:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch leads",
+        description: `Failed to fetch leads: ${error.message || 'Unknown error'}`,
         variant: "destructive",
       });
     } finally {
@@ -160,23 +187,31 @@ const LeadsManagement = () => {
     try {
       if (selectedLead) {
         // Update existing lead
-        const { error } = await supabase
+        console.log('Updating lead:', selectedLead.id, editingLead);
+        
+        const { data, error } = await supabase
           .from('clients')
           .update({
             full_name: editingLead.full_name,
-            company_name: editingLead.company_name,
-            location: editingLead.location,
-            email: editingLead.email,
-            phone: editingLead.phone,
-            source: editingLead.source,
-            status: editingLead.status,
-            notes: editingLead.notes,
-            assigned_rep_id: editingLead.assigned_rep_id,
-            scheduled_time: editingLead.scheduled_time
+            company_name: editingLead.company_name || null,
+            location: editingLead.location || null,
+            email: editingLead.email || null,
+            phone: editingLead.phone || null,
+            source: editingLead.source || 'manual',
+            status: editingLead.status || 'scheduled',
+            notes: editingLead.notes || null,
+            assigned_rep_id: editingLead.assigned_rep_id || null,
+            scheduled_time: editingLead.scheduled_time || null
           })
-          .eq('id', selectedLead.id);
+          .eq('id', selectedLead.id)
+          .select();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Supabase error:', error);
+          throw error;
+        }
+
+        console.log('Update result:', data);
 
         toast({
           title: "Success",
@@ -184,23 +219,31 @@ const LeadsManagement = () => {
         });
       } else {
         // Create new lead
-        const { error } = await supabase
+        console.log('Creating new lead:', editingLead);
+        
+        const { data, error } = await supabase
           .from('clients')
           .insert([{
             client_id: editingLead.client_id || `LEAD-${Date.now()}`,
             full_name: editingLead.full_name,
-            company_name: editingLead.company_name,
-            location: editingLead.location,
-            email: editingLead.email,
-            phone: editingLead.phone,
+            company_name: editingLead.company_name || null,
+            location: editingLead.location || null,
+            email: editingLead.email || null,
+            phone: editingLead.phone || null,
             source: editingLead.source || 'manual',
             status: editingLead.status || 'scheduled',
-            notes: editingLead.notes,
-            assigned_rep_id: editingLead.assigned_rep_id,
-            scheduled_time: editingLead.scheduled_time
-          }]);
+            notes: editingLead.notes || null,
+            assigned_rep_id: editingLead.assigned_rep_id || null,
+            scheduled_time: editingLead.scheduled_time || null
+          }])
+          .select();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Supabase error:', error);
+          throw error;
+        }
+
+        console.log('Create result:', data);
 
         toast({
           title: "Success",
@@ -212,11 +255,11 @@ const LeadsManagement = () => {
       setIsCreateDialogOpen(false);
       setEditingLead({});
       fetchLeads();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving lead:', error);
       toast({
         title: "Error",
-        description: "Failed to save lead",
+        description: `Failed to save lead: ${error.message || 'Unknown error'}`,
         variant: "destructive",
       });
     }
