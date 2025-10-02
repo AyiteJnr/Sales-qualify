@@ -26,6 +26,17 @@ interface Client {
 const Dashboard = () => {
   const { user, profile, signOut, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+
+  // Route users to appropriate dashboard based on role
+  useEffect(() => {
+    if (!authLoading && profile) {
+      if (profile.role === 'admin') {
+        navigate('/admin-dashboard');
+      } else if (profile.role === 'rep') {
+        navigate('/sales-dashboard');
+      }
+    }
+  }, [profile, authLoading, navigate]);
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');

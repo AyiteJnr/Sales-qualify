@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import AudioRecorder from '@/components/AudioRecorder';
+import EnhancedCallRecorder from '@/components/EnhancedCallRecorder';
 import TrafftBooking from '@/components/TrafftBooking';
 import { 
   Phone, 
@@ -420,9 +420,13 @@ const EnhancedQualificationForm = () => {
               </Card>
 
               {/* Audio Recording */}
-              <AudioRecorder 
-                clientId={clientId!}
-                onTranscriptionComplete={handleTranscriptionComplete}
+              <EnhancedCallRecorder
+                onTranscriptComplete={handleTranscriptionComplete}
+                onRecordingComplete={(audioBlob, audioUrl) => {
+                  // Handle recording completion if needed
+                  console.log('Recording completed:', audioBlob, audioUrl);
+                }}
+                clientName={client?.full_name}
               />
             </TabsContent>
 
