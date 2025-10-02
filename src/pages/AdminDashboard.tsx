@@ -117,6 +117,8 @@ const AdminDashboard = () => {
   const [callRecords, setCallRecords] = useState<CallRecord[]>([]);
   const [sendingFollowUp, setSendingFollowUp] = useState(false);
   const [followUpMessage, setFollowUpMessage] = useState('');
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
   useEffect(() => {
     console.log('AdminDashboard useEffect - profile:', profile);
@@ -136,9 +138,29 @@ const AdminDashboard = () => {
     }
   }, [profile, navigate]);
 
-  const fetchDashboardData = async () => {
+  // Auto-refresh effect for real-time updates
+  useEffect(() => {
+    if (!autoRefresh || profile?.role !== 'admin') return;
+    
+    const interval = setInterval(() => {
+      console.log('Auto-refreshing dashboard data...');
+      fetchDashboardData();
+      setLastRefresh(new Date());
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [autoRefresh, profile]);
+
+  const fetchDashboardData = async (showToast = false) => {
     try {
+      if (showToast) {
+        toast({
+          title: "Refreshing Data",
+          description: "Updating dashboard with latest information...",
+        });
+      }
       setLoading(true);
+      console.log('Fetching dashboard data at:', new Date().toISOString());
       
       // Fetch leads count
       const { count: leadsCount } = await supabase
@@ -235,7 +257,7 @@ const AdminDashboard = () => {
           )
         : null;
 
-      setStats({
+      const newStats = {
         totalLeads: leadsCount || 0,
         totalCalls: callsCount || 0,
         completedCalls: completedCallsCount || 0,
@@ -243,13 +265,33 @@ const AdminDashboard = () => {
         avgCallDuration: 0, // Would need to calculate from actual data
         topPerformer: topPerformerObj ? `${topPerformerObj.name} (${topPerformerObj.conversionRate.toFixed(1)}%)` : 'N/A',
         recentActivity: activityData.length
-      });
+      };
 
+      setStats(newStats);
       setRepPerformance(performanceData);
       setRecentActivity(activityData);
+      setLastRefresh(new Date());
+
+      if (showToast) {
+        toast({
+          title: "✅ Dashboard Updated",
+          description: `Found ${detailedCallRecords?.filter(r => r.qualification_status === 'hot' || (r as any).is_hot_deal).length || 0} hot deals`,
+        });
+      }
+
+      console.log('Dashboard data updated successfully:', {
+        hotDeals: detailedCallRecords?.filter(r => r.qualification_status === 'hot' || (r as any).is_hot_deal).length || 0,
+        totalCalls: callsCount,
+        totalLeads: leadsCount
+      });
 
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+      toast({
+        title: "Data Refresh Failed",
+        description: "Unable to fetch latest data. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
@@ -779,10 +821,43 @@ const AdminDashboard = () => {
                         <Badge className="bg-red-600 text-white animate-pulse">
                           {callRecords.filter(r => r.qualification_status === 'hot' || r.is_hot_deal).length} Active
                         </Badge>
+                        <div className="flex items-center gap-2 ml-auto">
+                          <Badge variant="outline" className="text-xs">
+                            Last updated: {lastRefresh.toLocaleTimeString()}
+                          </Badge>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              fetchDashboardData(true);
+                            }}
+                            className="h-8 w-8 p-0"
+                          >
+                            <RefreshCw className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </CardTitle>
                       <CardDescription className="text-slate-600 dark:text-slate-400">
                         Monitor and manage high-priority leads that require immediate attention
                       </CardDescription>
+                      <div className="flex items-center gap-4 mt-4">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id="autoRefresh"
+                            checked={autoRefresh}
+                            onChange={(e) => setAutoRefresh(e.target.checked)}
+                            className="rounded"
+                          />
+                          <label htmlFor="autoRefresh" className="text-sm text-slate-600">
+                            Auto-refresh every 30s
+                          </label>
+                        </div>
+                        <Badge variant="secondary" className="text-xs">
+                          {autoRefresh ? '🟢 Live' : '🔴 Manual'}
+                        </Badge>
+                      </div>
                     </CardHeader>
                   </Card>
 
@@ -813,13 +888,22 @@ const AdminDashboard = () => {
                       </CardContent>
                     </Card>
                     <Card className="border-slate-200 bg-white dark:bg-slate-800">
-                      <CardContent className="pt-6 text-center">
+                      <CardContent className="pt-6 text-center space-y-2">
                         <Button 
                           className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
                           onClick={() => navigate('/call-history?hot=true')}
+                          size="sm"
                         >
                           <FileText className="h-4 w-4 mr-2" />
                           View All Hot Calls
+                        </Button>
+                        <Button 
+                          className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                          onClick={() => navigate('/call-history?hot=true&analytics=true')}
+                          size="sm"
+                        >
+                          <TrendingUp className="h-4 w-4 mr-2" />
+                          View Analytics
                         </Button>
                       </CardContent>
                     </Card>
@@ -955,8 +1039,8 @@ const AdminDashboard = () => {
                             </div>
                           ))}
                         
-                        {callRecords.filter(r => r.qualification_status === 'hot' || r.is_hot_deal).length === 0 && (
-                          <div className="text-center py-8">
+                        {callRecords.filter(r => r.qualification_status === 'hot' || r.is_hot_deal).length === 0 && !loading && (
+                          <div className="text-center py-12 bg-gradient-to-br from-slate-50 to-gray-100 rounded-lg border-2 border-dashed border-slate-300">
                             <span className="text-4xl mb-4 block">🎯</span>
                             <h3 className="text-lg font-semibold mb-2">No Hot Deals Yet</h3>
                             <p className="text-muted-foreground mb-4">
@@ -1261,13 +1345,13 @@ const AdminDashboard = () => {
                         <Card className="border-purple-200">
                           <CardContent className="pt-6 text-center">
                             <Button 
-                              onClick={() => navigate('/call-history')}
+                              onClick={() => navigate('/call-history?analytics=true')}
                               className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
                               size="sm"
                             >
                               <BarChart3 className="h-4 w-4 mr-2" />
                               View Analytics
-                        </Button>
+                            </Button>
                           </CardContent>
                         </Card>
                       </div>

@@ -96,6 +96,11 @@ const CallHistory = () => {
     if (params.get('status')) {
       setStatusFilter(params.get('status') || 'all');
     }
+    if (params.get('analytics') === 'true') {
+      // Show analytics view with enhanced filtering
+      setHotDealsOnly(true);
+      setStatusFilter('hot');
+    }
     
     fetchCallRecords();
     if (profile?.role === 'admin') {
