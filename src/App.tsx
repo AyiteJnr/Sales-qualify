@@ -28,12 +28,30 @@ const RoleBasedRoute = ({ children }: { children: React.ReactNode }) => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <p className="mt-4 text-sm text-gray-600">Loading...</p>
       </div>
     );
   }
   
   if (!user) {
-    return <Index />;
+    // Redirect to auth page instead of Index
+    window.location.href = '/auth';
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <p className="mt-4 text-sm text-gray-600">Redirecting to login...</p>
+      </div>
+    );
+  }
+  
+  // If user exists but profile is still loading, show loading state
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <p className="mt-4 text-sm text-gray-600">Loading profile...</p>
+      </div>
+    );
   }
   
   return <>{children}</>;

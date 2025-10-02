@@ -69,16 +69,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProfile = async (userId: string) => {
     try {
+      console.log('Fetching profile for user ID:', userId);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Profile fetch error:', error);
+        throw error;
+      }
+      
+      console.log('Profile fetched successfully:', data);
       setProfile(data);
     } catch (error) {
       console.error('Error fetching profile:', error);
+      // If profile doesn't exist, create a default one
+      if (error.code === 'PGRST116') {
+        console.log('Profile not found, creating default profile...');
+        await createDefaultProfile(userId);
+      }
+    }
+  };
+
+  const createDefaultProfile = async (userId: string) => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData.user;
+      
+      if (user) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .insert([{
+            id: userId,
+            email: user.email || '',
+            full_name: user.user_metadata?.full_name || user.email || 'User',
+            role: user.email === 'admin@salesqualify.com' ? 'admin' : 'rep'
+          }])
+          .select()
+          .single();
+
+        if (error) throw error;
+        
+        console.log('Default profile created:', data);
+        setProfile(data);
+      }
+    } catch (error) {
+      console.error('Error creating default profile:', error);
     }
   };
 

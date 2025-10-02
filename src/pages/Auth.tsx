@@ -112,14 +112,49 @@ const Auth = () => {
       : { email: 'sales@salesqualify.com', password: 'sales123' };
 
     try {
+      console.log('Attempting demo login for:', credentials.email);
       const { error } = await signIn(credentials.email, credentials.password);
+      
       if (error) {
-        toast({
-          title: "Demo Login Failed",
-          description: error.message,
-          variant: "destructive",
-        });
+        console.error('Demo login error:', error);
+        
+        // If user doesn't exist, try to create them
+        if (error.message?.includes('Invalid login credentials')) {
+          toast({
+            title: "Demo User Setup Required",
+            description: "Demo users need to be created. Please sign up with the demo credentials first.",
+            variant: "destructive",
+          });
+          
+          // Automatically try to sign up the demo user
+          const { error: signUpError } = await signUp(
+            credentials.email, 
+            credentials.password, 
+            role === 'admin' ? 'Admin User' : 'Sales Rep',
+            role === 'admin' ? 'admin' : 'rep'
+          );
+          
+          if (signUpError) {
+            toast({
+              title: "Demo Setup Failed",
+              description: `Failed to create demo user: ${signUpError.message}`,
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: "Demo User Created",
+              description: "Please check your email to verify the account, or try logging in again.",
+            });
+          }
+        } else {
+          toast({
+            title: "Demo Login Failed",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
       } else {
+        console.log('Demo login successful');
         toast({
           title: `Welcome ${role === 'admin' ? 'Admin' : 'Sales Rep'}!`,
           description: "Demo login successful.",
@@ -127,9 +162,10 @@ const Auth = () => {
         navigate('/dashboard');
       }
     } catch (error: any) {
+      console.error('Demo login exception:', error);
       toast({
         title: "Demo Login Failed",
-        description: error.message,
+        description: error.message || 'An unexpected error occurred',
         variant: "destructive",
       });
     } finally {

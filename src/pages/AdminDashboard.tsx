@@ -24,7 +24,8 @@ import {
   ArrowLeft,
   RefreshCw,
   Download,
-  Filter
+  Filter,
+  Plus
 } from 'lucide-react';
 
 interface DashboardStats {
@@ -73,12 +74,19 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('AdminDashboard useEffect - profile:', profile);
+    
     if (profile && profile.role !== 'admin') {
+      console.log('User is not admin, redirecting to sales dashboard');
       navigate('/sales-dashboard', { replace: true });
       return;
     }
+    
     if (profile?.role === 'admin') {
+      console.log('User is admin, fetching dashboard data');
       fetchDashboardData();
+    } else {
+      console.log('Profile not loaded yet or user not admin');
     }
   }, [profile, navigate]);
 
