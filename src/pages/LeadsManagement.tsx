@@ -147,6 +147,16 @@ const LeadsManagement = () => {
   };
 
   const handleSaveLead = async () => {
+    // Validate required fields
+    if (!editingLead.full_name?.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Full name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       if (selectedLead) {
         // Update existing lead

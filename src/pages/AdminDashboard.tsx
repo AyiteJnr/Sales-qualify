@@ -314,9 +314,10 @@ const AdminDashboard = () => {
           {/* Main Content */}
           <motion.div variants={itemVariants}>
             <Tabs defaultValue="overview" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-6">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="performance">Performance</TabsTrigger>
+                <TabsTrigger value="leads">Leads Management</TabsTrigger>
                 <TabsTrigger value="activity">Activity</TabsTrigger>
                 <TabsTrigger value="integrations">Integrations</TabsTrigger>
                 <TabsTrigger value="settings">Settings</TabsTrigger>
@@ -461,6 +462,56 @@ const AdminDashboard = () => {
                 </Card>
               </TabsContent>
 
+              <TabsContent value="leads" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Leads Management</CardTitle>
+                    <CardDescription>
+                      Manage all leads across the organization
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Button 
+                          onClick={() => navigate('/leads-management')}
+                          className="h-20 flex-col gap-2"
+                        >
+                          <Users className="h-6 w-6" />
+                          View All Leads
+                        </Button>
+                        <Button 
+                          variant="outline"
+                          onClick={() => navigate('/client/new')}
+                          className="h-20 flex-col gap-2"
+                        >
+                          <Plus className="h-6 w-6" />
+                          Add New Lead
+                        </Button>
+                        <Button 
+                          variant="outline"
+                          onClick={() => navigate('/import/google-sheets')}
+                          className="h-20 flex-col gap-2"
+                        >
+                          <FileText className="h-6 w-6" />
+                          Import from Sheets
+                        </Button>
+                      </div>
+                      <div className="text-center py-8">
+                        <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Centralized Lead Management</h3>
+                        <p className="text-gray-600 mb-4">
+                          Access and manage all leads across your organization from one central location
+                        </p>
+                        <Button onClick={() => navigate('/leads-management')}>
+                          Go to Leads Management
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
               <TabsContent value="integrations" className="space-y-6">
                 <N8NIntegration 
                   onLeadsImported={(count) => {
@@ -508,9 +559,13 @@ const AdminDashboard = () => {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                      <Button variant="outline" className="w-full">
+                      <Button 
+                        variant="outline" 
+                        className="w-full"
+                        onClick={() => navigate('/import/google-sheets')}
+                      >
                         <FileText className="h-4 w-4 mr-2" />
-                        Manage Questions
+                        Import from Google Sheets
                       </Button>
                       <Button variant="outline" className="w-full">
                         <Download className="h-4 w-4 mr-2" />

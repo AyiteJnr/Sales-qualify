@@ -341,10 +341,20 @@ const SalesDashboard = () => {
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer" onClick={() => navigate('/call-history')}>
+            <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer" onClick={() => navigate('/import/google-sheets')}>
               <CardContent className="p-6 text-center">
                 <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
                   <FileText className="h-6 w-6 text-blue-600" />
+                </div>
+                <h3 className="font-semibold mb-2">Import from Sheets</h3>
+                <p className="text-sm text-gray-600">Bulk import leads from Google Sheets</p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer" onClick={() => navigate('/call-history')}>
+              <CardContent className="p-6 text-center">
+                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <Clock className="h-6 w-6 text-purple-600" />
                 </div>
                 <h3 className="font-semibold mb-2">Call History</h3>
                 <p className="text-sm text-gray-600">Review your past calls and results</p>

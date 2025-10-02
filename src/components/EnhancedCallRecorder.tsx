@@ -184,12 +184,12 @@ const EnhancedCallRecorder = ({
       const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
       
       const { data, error } = await supabase.functions.invoke('transcribe-audio', {
-        body: { audioData: base64 }
+        body: { audio: base64 }
       });
 
       if (error) throw error;
 
-      const transcript = data.transcript || 'No transcript available';
+      const transcript = data.text || 'No transcript available';
       
       setRecordingState(prev => ({
         ...prev,
@@ -243,12 +243,12 @@ const EnhancedCallRecorder = ({
       const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
       
       const { data, error } = await supabase.functions.invoke('transcribe-audio', {
-        body: { audioData: base64 }
+        body: { audio: base64 }
       });
 
       if (error) throw error;
 
-      const transcript = data.transcript || 'No transcript available';
+      const transcript = data.text || 'No transcript available';
       setUploadTranscript(transcript);
       setUploadComplete(true);
       onTranscriptComplete(transcript);

@@ -135,8 +135,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setProfile(null);
       setSession(null);
+      
+      // Navigate to auth page after successful sign out
+      window.location.href = '/auth';
+      
       return { error: null };
     } catch (error: any) {
+      console.error('Sign out error:', error);
       return { error };
     }
   };
