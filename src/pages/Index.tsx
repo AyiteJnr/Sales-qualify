@@ -316,54 +316,6 @@ const Index = () => {
         </div>
       </motion.section>
 
-      {/* App Screenshot Section */}
-      <motion.section 
-        className="py-20 px-4 bg-gradient-to-r from-primary/5 to-blue-50"
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        transition={{ duration: 0.8 }}
-        viewport={{ once: true }}
-      >
-        <div className="container mx-auto text-center">
-          <motion.h2 
-            className="text-4xl font-bold mb-4 text-gray-900"
-            initial={{ y: 20, opacity: 0 }}
-            whileInView={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-          >
-            See SalesQualify in Action
-          </motion.h2>
-          <motion.p 
-            className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto"
-            initial={{ y: 20, opacity: 0 }}
-            whileInView={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            viewport={{ once: true }}
-          >
-            Experience the power of AI-driven lead qualification with our intuitive dashboard
-          </motion.p>
-          
-          <motion.div 
-            className="relative max-w-6xl mx-auto"
-            initial={{ scale: 0.9, opacity: 0 }}
-            whileInView={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            viewport={{ once: true }}
-          >
-            <div className="bg-white rounded-2xl shadow-2xl p-8 border">
-              <div className="bg-gray-100 rounded-lg p-6 h-96 flex items-center justify-center">
-                <div className="text-center">
-                  <BarChart3 className="h-24 w-24 text-primary mx-auto mb-4" />
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Interactive Dashboard</h3>
-                  <p className="text-gray-600">Real-time analytics and lead scoring in action</p>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </motion.section>
-
       {/* Features Section */}
       <motion.section 
         id="features"
