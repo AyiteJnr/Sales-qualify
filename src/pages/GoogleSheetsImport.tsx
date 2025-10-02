@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { Phone, ArrowLeft, Loader2, FileSpreadsheet, Download, Users } from 'lucide-react';
+import Papa from 'papaparse';
 
 interface LeadData {
   id: string;
@@ -42,6 +43,7 @@ const GoogleSheetsImport = () => {
   const [salesReps, setSalesReps] = useState<SalesRep[]>([]);
   const [showPreview, setShowPreview] = useState(false);
   const [defaultAssignedRep, setDefaultAssignedRep] = useState<string>('');
+  const [csvFile, setCsvFile] = useState<File | null>(null);
 
   // Generate dynamic mock data for demonstration
   const generateMockLeads = (): LeadData[] => {
@@ -118,15 +120,56 @@ const GoogleSheetsImport = () => {
     }
   };
 
+  const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCsvFile(file);
+    setLoading(true);
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        const parsedLeads: LeadData[] = (results.data as any[]).map((row, i) => ({
+          id: `${Date.now()}_${i}`,
+          name: row['Name'] || '',
+          email: row['Email'] || '',
+          company: row['Company'] || '',
+          phone: row['Phone'] || '',
+          location: row['Location'] || '',
+          notes: row['Notes'] || '',
+          selected: true,
+          assignedRepId: defaultAssignedRep || 'unassigned',
+        }));
+        setLeads(parsedLeads);
+        setShowPreview(true);
+        setLoading(false);
+        toast({
+          title: 'Leads Fetched',
+          description: `Found ${parsedLeads.length} leads in the uploaded CSV`,
+        });
+      },
+      error: (error) => {
+        setLoading(false);
+        toast({
+          title: 'CSV Parse Error',
+          description: error.message,
+          variant: 'destructive',
+        });
+      },
+    });
+  };
+
   const handleFetchLeads = async () => {
-    if (!sheetUrl) {
+    if (!sheetUrl && !csvFile) {
       toast({
         title: "Error",
-        description: "Please enter a Google Sheets URL",
+        description: "Please enter a Google Sheets URL or upload a CSV file",
         variant: "destructive",
       });
       return;
     }
+
+    if (csvFile) return; // If CSV is uploaded, don't fetch Google Sheets
 
     setLoading(true);
     
@@ -277,6 +320,18 @@ const GoogleSheetsImport = () => {
                 </div>
               </div>
               
+              <div className="space-y-2">
+                <Label htmlFor="csv_upload">Or Upload CSV</Label>
+                <Input
+                  id="csv_upload"
+                  type="file"
+                  accept=".csv"
+                  onChange={handleCsvUpload}
+                  disabled={loading}
+                />
+                <p className="text-xs text-muted-foreground">Accepted columns: Name, Email, Company, Phone, Location, Notes</p>
+              </div>
+
               <div className="p-4 bg-muted rounded-lg">
                 <h4 className="font-medium mb-2">Setup Instructions:</h4>
                 <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
