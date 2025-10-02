@@ -25,10 +25,13 @@ import {
   RefreshCw,
   Download,
   Filter,
-  Plus
+  Plus,
+  Upload
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import Papa from 'papaparse';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface DashboardStats {
   totalLeads: number;
@@ -77,6 +80,12 @@ const AdminDashboard = () => {
   const [showUsersModal, setShowUsersModal] = useState(false);
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
+  const [csvLeads, setCsvLeads] = useState<any[]>([]);
+  const [csvPreview, setCsvPreview] = useState(false);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvImporting, setCsvImporting] = useState(false);
+  const [csvSalesReps, setCsvSalesReps] = useState<any[]>([]);
+  const [csvDefaultRep, setCsvDefaultRep] = useState<string>('unassigned');
 
   useEffect(() => {
     console.log('AdminDashboard useEffect - profile:', profile);
@@ -169,17 +178,19 @@ const AdminDashboard = () => {
         user: call.profiles?.full_name || 'Unknown'
       })) || [];
 
+      const topPerformerObj = performanceData.length > 0
+        ? performanceData.reduce((prev, current) =>
+            current.conversionRate > prev.conversionRate ? current : prev
+          )
+        : null;
+
       setStats({
         totalLeads: leadsCount || 0,
         totalCalls: callsCount || 0,
         completedCalls: completedCallsCount || 0,
         conversionRate: callsCount ? ((completedCallsCount || 0) / callsCount) * 100 : 0,
         avgCallDuration: 0, // Would need to calculate from actual data
-        topPerformer: performanceData.length > 0 
-          ? performanceData.reduce((prev, current) => 
-              prev.conversionRate > current.conversionRate ? prev : current
-            ).name 
-          : 'N/A',
+        topPerformer: topPerformerObj ? `${topPerformerObj.name} (${topPerformerObj.conversionRate.toFixed(1)}%)` : 'N/A',
         recentActivity: activityData.length
       });
 
@@ -235,6 +246,74 @@ const AdminDashboard = () => {
       toast({ title: 'Export Failed', description: 'Failed to export users', variant: 'destructive' });
     } finally {
       setUsersLoading(false);
+    }
+  };
+
+  const fetchCsvSalesReps = async () => {
+    const { data } = await supabase.from('profiles').select('id, full_name, email, role').order('full_name');
+    setCsvSalesReps(data || []);
+  };
+
+  const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCsvFile(file);
+    setCsvPreview(false);
+    setCsvLeads([]);
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        const leads = (results.data as any[]).map((row, i) => ({
+          id: `${Date.now()}_${i}`,
+          name: row['Name'] || '',
+          email: row['Email'] || '',
+          company: row['Company'] || '',
+          phone: row['Phone'] || '',
+          location: row['Location'] || '',
+          notes: row['Notes'] || '',
+          assignedRepId: csvDefaultRep || 'unassigned',
+          selected: true
+        }));
+        setCsvLeads(leads);
+        setCsvPreview(true);
+        fetchCsvSalesReps();
+      },
+    });
+  };
+
+  const updateCsvLeadAssignment = (leadId: string, repId: string) => {
+    setCsvLeads(prev => prev.map(lead => lead.id === leadId ? { ...lead, assignedRepId: repId } : lead));
+  };
+  const assignAllCsvToRep = (repId: string) => {
+    setCsvLeads(prev => prev.map(lead => ({ ...lead, assignedRepId: repId })));
+    setCsvDefaultRep(repId);
+  };
+  const handleImportCsvLeads = async () => {
+    setCsvImporting(true);
+    try {
+      const toInsert = csvLeads.filter(l => l.selected).map(lead => ({
+        client_id: `admincsv_${lead.id}`,
+        full_name: lead.name,
+        company_name: lead.company,
+        email: lead.email,
+        phone: lead.phone,
+        location: lead.location,
+        notes: lead.notes,
+        status: 'scheduled' as 'scheduled',
+        source: 'admin_csv',
+        assigned_rep_id: lead.assignedRepId === 'unassigned' ? null : lead.assignedRepId,
+      }));
+      const { error } = await supabase.from('clients').insert(toInsert);
+      if (error) throw error;
+      toast({ title: 'Leads Imported', description: `${toInsert.length} leads imported successfully.` });
+      setCsvLeads([]);
+      setCsvPreview(false);
+      setCsvFile(null);
+    } catch (error) {
+      toast({ title: 'Import Failed', description: 'Failed to import leads', variant: 'destructive' });
+    } finally {
+      setCsvImporting(false);
     }
   };
 
@@ -634,6 +713,81 @@ const AdminDashboard = () => {
                     </CardContent>
                   </Card>
                 </div>
+                <Card className="mt-6">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Upload className="h-5 w-5" />
+                      Upload Leads (CSV)
+                    </CardTitle>
+                    <CardDescription>Upload leads and assign to sales reps. Columns: Name, Email, Company, Phone, Location, Notes</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <Input type="file" accept=".csv" onChange={handleCsvUpload} />
+                    {csvPreview && csvLeads.length > 0 && (
+                      <>
+                        <div className="flex items-center gap-4">
+                          <Button variant="outline" onClick={() => assignAllCsvToRep('unassigned')}>Unassign All</Button>
+                          <Select value={csvDefaultRep} onValueChange={assignAllCsvToRep}>
+                            <SelectTrigger className="w-64">
+                              <SelectValue placeholder="Assign all to..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="unassigned">Unassigned</SelectItem>
+                              {csvSalesReps.map(rep => (
+                                <SelectItem key={rep.id} value={rep.id}>{rep.full_name} ({rep.role})</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button onClick={handleImportCsvLeads} disabled={csvImporting}>
+                            {csvImporting ? 'Importing...' : 'Import Selected'}
+                          </Button>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full text-sm">
+                            <thead>
+                              <tr>
+                                <th></th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Company</th>
+                                <th>Phone</th>
+                                <th>Location</th>
+                                <th>Notes</th>
+                                <th>Assigned Rep</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {csvLeads.map(lead => (
+                                <tr key={lead.id} className="border-b">
+                                  <td><input type="checkbox" checked={lead.selected} onChange={() => setCsvLeads(prev => prev.map(l => l.id === lead.id ? { ...l, selected: !l.selected } : l))} /></td>
+                                  <td>{lead.name}</td>
+                                  <td>{lead.email}</td>
+                                  <td>{lead.company}</td>
+                                  <td>{lead.phone}</td>
+                                  <td>{lead.location}</td>
+                                  <td>{lead.notes}</td>
+                                  <td>
+                                    <Select value={lead.assignedRepId || 'unassigned'} onValueChange={v => updateCsvLeadAssignment(lead.id, v)}>
+                                      <SelectTrigger className="w-40">
+                                        <SelectValue placeholder="Assign..." />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="unassigned">Unassigned</SelectItem>
+                                        {csvSalesReps.map(rep => (
+                                          <SelectItem key={rep.id} value={rep.id}>{rep.full_name}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
               </TabsContent>
             </Tabs>
           </motion.div>
