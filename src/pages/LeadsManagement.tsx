@@ -90,18 +90,61 @@ const LeadsManagement = () => {
   const testDatabaseConnection = async () => {
     try {
       console.log('Testing database connection...');
-      const { data, error } = await supabase
+      
+      // Test basic connection
+      const { data: connectionTest, error: connectionError } = await supabase
         .from('clients')
         .select('count')
         .limit(1);
       
-      if (error) {
-        console.error('Database connection test failed:', error);
-      } else {
-        console.log('Database connection test successful:', data);
+      if (connectionError) {
+        console.error('Database connection test failed:', connectionError);
+        return false;
       }
+      
+      console.log('Database connection test successful:', connectionTest);
+      
+      // Test authentication
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError) {
+        console.error('Auth test failed:', authError);
+        return false;
+      }
+      
+      console.log('Auth test successful, user:', user);
+      
+      // Test write permissions
+      const testData = {
+        client_id: `TEST-${Date.now()}`,
+        full_name: 'Test User',
+        source: 'test'
+      };
+      
+      const { data: insertTest, error: insertError } = await supabase
+        .from('clients')
+        .insert([testData])
+        .select();
+      
+      if (insertError) {
+        console.error('Insert test failed:', insertError);
+        return false;
+      }
+      
+      console.log('Insert test successful:', insertTest);
+      
+      // Clean up test data
+      if (insertTest && insertTest[0]) {
+        await supabase
+          .from('clients')
+          .delete()
+          .eq('id', insertTest[0].id);
+        console.log('Test data cleaned up');
+      }
+      
+      return true;
     } catch (error) {
       console.error('Database connection test error:', error);
+      return false;
     }
   };
 
@@ -187,33 +230,52 @@ const LeadsManagement = () => {
     }
 
     try {
+      console.log('Current user:', user);
+      console.log('Current profile:', profile);
+      
       if (selectedLead) {
         // Update existing lead
         console.log('Updating lead:', selectedLead.id, editingLead);
         
+        // Prepare update data
+        const updateData = {
+          full_name: editingLead.full_name.trim(),
+          company_name: editingLead.company_name?.trim() || null,
+          location: editingLead.location?.trim() || null,
+          email: editingLead.email?.trim() || null,
+          phone: editingLead.phone?.trim() || null,
+          source: editingLead.source || 'manual',
+          status: editingLead.status || 'scheduled',
+          notes: editingLead.notes?.trim() || null,
+          assigned_rep_id: editingLead.assigned_rep_id || null,
+          scheduled_time: editingLead.scheduled_time || null,
+          updated_at: new Date().toISOString()
+        };
+        
+        console.log('Update data:', updateData);
+        
         const { data, error } = await supabase
           .from('clients')
-          .update({
-            full_name: editingLead.full_name,
-            company_name: editingLead.company_name || null,
-            location: editingLead.location || null,
-            email: editingLead.email || null,
-            phone: editingLead.phone || null,
-            source: editingLead.source || 'manual',
-            status: editingLead.status || 'scheduled',
-            notes: editingLead.notes || null,
-            assigned_rep_id: editingLead.assigned_rep_id || null,
-            scheduled_time: editingLead.scheduled_time || null
-          })
+          .update(updateData)
           .eq('id', selectedLead.id)
           .select();
 
         if (error) {
-          console.error('Supabase error:', error);
+          console.error('Supabase update error:', error);
+          console.error('Error details:', {
+            code: error.code,
+            message: error.message,
+            details: error.details,
+            hint: error.hint
+          });
           throw error;
         }
 
         console.log('Update result:', data);
+
+        if (!data || data.length === 0) {
+          throw new Error('No data returned from update operation');
+        }
 
         toast({
           title: "Success",
@@ -223,29 +285,44 @@ const LeadsManagement = () => {
         // Create new lead
         console.log('Creating new lead:', editingLead);
         
+        // Prepare insert data
+        const insertData = {
+          client_id: editingLead.client_id?.trim() || `LEAD-${Date.now()}`,
+          full_name: editingLead.full_name.trim(),
+          company_name: editingLead.company_name?.trim() || null,
+          location: editingLead.location?.trim() || null,
+          email: editingLead.email?.trim() || null,
+          phone: editingLead.phone?.trim() || null,
+          source: editingLead.source || 'manual',
+          status: editingLead.status || 'scheduled',
+          notes: editingLead.notes?.trim() || null,
+          assigned_rep_id: editingLead.assigned_rep_id || null,
+          scheduled_time: editingLead.scheduled_time || null
+        };
+        
+        console.log('Insert data:', insertData);
+        
         const { data, error } = await supabase
           .from('clients')
-          .insert([{
-            client_id: editingLead.client_id || `LEAD-${Date.now()}`,
-            full_name: editingLead.full_name,
-            company_name: editingLead.company_name || null,
-            location: editingLead.location || null,
-            email: editingLead.email || null,
-            phone: editingLead.phone || null,
-            source: editingLead.source || 'manual',
-            status: editingLead.status || 'scheduled',
-            notes: editingLead.notes || null,
-            assigned_rep_id: editingLead.assigned_rep_id || null,
-            scheduled_time: editingLead.scheduled_time || null
-          }])
+          .insert([insertData])
           .select();
 
         if (error) {
-          console.error('Supabase error:', error);
+          console.error('Supabase insert error:', error);
+          console.error('Error details:', {
+            code: error.code,
+            message: error.message,
+            details: error.details,
+            hint: error.hint
+          });
           throw error;
         }
 
         console.log('Create result:', data);
+
+        if (!data || data.length === 0) {
+          throw new Error('No data returned from insert operation');
+        }
 
         toast({
           title: "Success",
@@ -377,6 +454,13 @@ const LeadsManagement = () => {
             >
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
+            </Button>
+            <Button
+              variant="outline"
+              onClick={testDatabaseConnection}
+              className="text-blue-600"
+            >
+              Test DB
             </Button>
           </div>
         </motion.div>

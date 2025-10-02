@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Leads Management</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .error { color: red; }
+        .success { color: green; }
+        .info { color: blue; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        textarea { width: 100%; height: 200px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>Sales Qualify - Leads Management Debug Tool</h1>
+    
+    <div class="section">
+        <h2>Debug Instructions</h2>
+        <p>Follow these steps to debug the leads editing issue:</p>
+        <ol>
+            <li><strong>Open your app in the browser</strong> and navigate to Leads Management</li>
+            <li><strong>Open Developer Tools</strong> (F12) and go to the Console tab</li>
+            <li><strong>Click "Test DB" button</strong> in the Leads Management page</li>
+            <li><strong>Try to edit a lead</strong> and watch the console for error messages</li>
+            <li><strong>Copy any error messages</strong> and check them against the common issues below</li>
+        </ol>
+    </div>
+
+    <div class="section">
+        <h2>Common Issues & Solutions</h2>
+        
+        <h3>1. Authentication Issues</h3>
+        <p class="error">Error: "Invalid JWT" or "User not authenticated"</p>
+        <p><strong>Solution:</strong> Make sure you're logged in with a valid demo account</p>
+        
+        <h3>2. Database Permission Issues</h3>
+        <p class="error">Error: "permission denied for table clients"</p>
+        <p><strong>Solution:</strong> Run this SQL in your Supabase SQL Editor:</p>
+        <textarea readonly>
+-- Ensure RLS policies allow editing
+DROP POLICY IF EXISTS "Public can manage all clients" ON public.clients;
+CREATE POLICY "Public can manage all clients" 
+ON public.clients 
+FOR ALL 
+USING (true)
+WITH CHECK (true);
+
+-- Check if RLS is enabled (should be true)
+SELECT schemaname, tablename, rowsecurity 
+FROM pg_tables 
+WHERE tablename = 'clients';
+        </textarea>
+        
+        <h3>3. Missing Profile Issues</h3>
+        <p class="error">Error: "Profile not found" or user/profile is null</p>
+        <p><strong>Solution:</strong> Create the missing profile:</p>
+        <textarea readonly>
+-- Insert missing profiles for demo users
+INSERT INTO public.profiles (id, email, full_name, role)
+SELECT 
+  id,
+  email,
+  CASE 
+    WHEN email = 'admin@salesqualify.com' THEN 'Admin User'
+    WHEN email = 'sales@salesqualify.com' THEN 'Sales Rep'
+    ELSE email
+  END as full_name,
+  CASE 
+    WHEN email = 'admin@salesqualify.com' THEN 'admin'::user_role
+    ELSE 'rep'::user_role
+  END as role
+FROM auth.users 
+WHERE email IN ('admin@salesqualify.com', 'sales@salesqualify.com')
+ON CONFLICT (id) DO UPDATE SET
+  role = EXCLUDED.role,
+  full_name = EXCLUDED.full_name;
+        </textarea>
+        
+        <h3>4. Data Validation Issues</h3>
+        <p class="error">Error: "violates check constraint" or "invalid input"</p>
+        <p><strong>Solution:</strong> Check that status values match the enum:</p>
+        <textarea readonly>
+-- Check valid status values
+SELECT unnest(enum_range(NULL::call_status)) as valid_status;
+
+-- Should return: scheduled, in_progress, completed, cancelled
+        </textarea>
+    </div>
+
+    <div class="section">
+        <h2>Manual Test Steps</h2>
+        <ol>
+            <li>Go to your Supabase dashboard</li>
+            <li>Navigate to Table Editor → clients</li>
+            <li>Try to manually edit a row</li>
+            <li>If manual editing works, the issue is in the frontend code</li>
+            <li>If manual editing fails, the issue is in database permissions</li>
+        </ol>
+    </div>
+
+    <div class="section">
+        <h2>Console Commands for Testing</h2>
+        <p>Run these in your browser console while on the Leads Management page:</p>
+        <textarea readonly>
+// Test Supabase connection
+console.log('Testing Supabase connection...');
+const { data, error } = await supabase.from('clients').select('*').limit(1);
+console.log('Connection test:', { data, error });
+
+// Test current user
+const { data: userData } = await supabase.auth.getUser();
+console.log('Current user:', userData);
+
+// Test update operation
+const testUpdate = await supabase
+  .from('clients')
+  .update({ notes: 'Test update ' + new Date().toISOString() })
+  .eq('id', 'REPLACE_WITH_ACTUAL_LEAD_ID')
+  .select();
+console.log('Update test:', testUpdate);
+        </textarea>
+    </div>
+
+    <div class="section">
+        <h2>Expected Console Output</h2>
+        <p>When everything works correctly, you should see:</p>
+        <div class="success">
+            <p>✅ Database connection test successful</p>
+            <p>✅ Auth test successful, user: {user object}</p>
+            <p>✅ Insert test successful</p>
+            <p>✅ Test data cleaned up</p>
+            <p>✅ Updating lead: {lead-id} {lead-data}</p>
+            <p>✅ Update result: [{updated lead data}]</p>
+        </div>
+    </div>
+</body>
+</html>
