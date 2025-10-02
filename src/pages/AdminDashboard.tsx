@@ -29,7 +29,8 @@ import {
   Upload,
   Send,
   Eye,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -114,6 +115,8 @@ const AdminDashboard = () => {
   const [csvSalesReps, setCsvSalesReps] = useState<any[]>([]);
   const [csvDefaultRep, setCsvDefaultRep] = useState<string>('unassigned');
   const [callRecords, setCallRecords] = useState<CallRecord[]>([]);
+  const [sendingFollowUp, setSendingFollowUp] = useState(false);
+  const [followUpMessage, setFollowUpMessage] = useState('');
 
   useEffect(() => {
     console.log('AdminDashboard useEffect - profile:', profile);
@@ -441,6 +444,45 @@ const AdminDashboard = () => {
     }
   };
 
+  const sendFollowUpRequest = async (record: CallRecord) => {
+    setSendingFollowUp(true);
+    try {
+      // Update the call record with follow-up information
+      const { error } = await supabase.from('call_records').update({
+        follow_up_required: false,
+        next_action: 'Follow-up sent',
+        comments: `Follow-up sent by ${profile?.full_name} on ${new Date().toLocaleDateString()}. Message: ${followUpMessage}`,
+      }).eq('id', record.id);
+
+      if (error) throw error;
+
+      // Create a notification for the sales rep (if notifications table exists)
+      try {
+        await supabase.from('profiles').update({
+          updated_at: new Date().toISOString()
+        }).eq('id', record.rep_id);
+      } catch (notifError) {
+        console.log('Notification creation skipped - table may not exist');
+      }
+
+      toast({
+        title: "Follow-up Sent",
+        description: `Follow-up request sent to ${record.profiles?.full_name} for ${record.clients?.full_name}.`,
+      });
+      setFollowUpMessage('');
+      fetchDashboardData();
+    } catch (error: any) {
+      console.error('Error sending follow-up:', error);
+      toast({
+        title: "Follow-up Failed",
+        description: error.message || "Failed to send follow-up request",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingFollowUp(false);
+    }
+  };
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -729,16 +771,16 @@ const AdminDashboard = () => {
               <TabsContent value="hot-deals" className="space-y-6">
                 <div className="grid gap-6">
                   {/* Hot Deals Header */}
-                  <Card className="border-2 border-red-300 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950 dark:to-orange-950">
+                  <Card className="border border-muted bg-muted dark:bg-slate-900">
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-red-700 dark:text-red-300">
+                      <CardTitle className="flex items-center gap-2 text-slate-800 dark:text-slate-100">
                         <span className="text-2xl">🔥</span>
                         Hot Deals Dashboard
                         <Badge className="bg-red-600 text-white animate-pulse">
                           {callRecords.filter(r => r.qualification_status === 'hot' || r.is_hot_deal).length} Active
                         </Badge>
                       </CardTitle>
-                      <CardDescription className="text-red-600 dark:text-red-400">
+                      <CardDescription className="text-slate-600 dark:text-slate-400">
                         Monitor and manage high-priority leads that require immediate attention
                       </CardDescription>
                     </CardHeader>
@@ -746,45 +788,45 @@ const AdminDashboard = () => {
 
                   {/* Hot Deals Actions */}
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <Card className="border-red-200">
+                    <Card className="border-blue-200 bg-white dark:bg-slate-800">
                       <CardContent className="pt-6 text-center">
-                        <div className="text-3xl font-bold text-red-600">
+                        <div className="text-3xl font-bold text-blue-600">
                           {callRecords.filter(r => r.qualification_status === 'hot').length}
                         </div>
                         <p className="text-sm text-muted-foreground">Hot Leads Today</p>
                       </CardContent>
                     </Card>
-                    <Card className="border-orange-200">
+                    <Card className="border-green-200 bg-white dark:bg-slate-800">
                       <CardContent className="pt-6 text-center">
-                        <div className="text-3xl font-bold text-orange-600">
+                        <div className="text-3xl font-bold text-green-600">
                           {callRecords.filter(r => r.is_hot_deal).length}
                         </div>
                         <p className="text-sm text-muted-foreground">Flagged Deals</p>
                       </CardContent>
                     </Card>
-                    <Card className="border-green-200">
+                    <Card className="border-orange-200 bg-white dark:bg-slate-800">
                       <CardContent className="pt-6 text-center">
-                        <div className="text-3xl font-bold text-green-600">
+                        <div className="text-3xl font-bold text-orange-600">
                           {callRecords.filter(r => r.follow_up_required).length}
                         </div>
                         <p className="text-sm text-muted-foreground">Follow-ups Pending</p>
                       </CardContent>
                     </Card>
-                    <Card className="border-blue-200">
+                    <Card className="border-slate-200 bg-white dark:bg-slate-800">
                       <CardContent className="pt-6 text-center">
                         <Button 
-                          className="w-full bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white"
-                          onClick={() => navigate('/call-history')}
+                          className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                          onClick={() => navigate('/call-history?hot=true')}
                         >
                           <FileText className="h-4 w-4 mr-2" />
-                          View All Details
+                          View All Hot Calls
                         </Button>
                       </CardContent>
                     </Card>
                   </div>
 
                   {/* Hot Deals List */}
-                <Card>
+                <Card className="border border-muted bg-white dark:bg-slate-900">
                   <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <TrendingUp className="h-5 w-5 text-red-600" />
@@ -795,12 +837,18 @@ const AdminDashboard = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
+                    {loading ? (
+                      <div className="text-center py-8">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+                        <p className="text-muted-foreground">Loading hot deals...</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
                         {callRecords
                           .filter(r => r.qualification_status === 'hot' || r.is_hot_deal)
                           .slice(0, 10)
                           .map((record) => (
-                            <div key={record.id} className="p-4 border border-red-200 rounded-lg bg-red-50/50 dark:bg-red-950/20">
+                            <div key={record.id} className="p-4 border border-slate-200 rounded-lg bg-slate-50 dark:bg-slate-800">
                               <div className="flex items-start justify-between">
                                 <div className="flex-1">
                                   <div className="flex items-center gap-3 mb-2">
@@ -836,16 +884,17 @@ const AdminDashboard = () => {
                                   </div>
 
                                   {record.comments && (
-                                    <p className="text-sm p-3 bg-white dark:bg-gray-800 rounded border-l-4 border-red-500">
+                                    <p className="text-sm p-3 bg-muted rounded border-l-4 border-red-500">
                                       💭 {record.comments}
                                     </p>
                                   )}
                                 </div>
                                 
                                 <div className="flex gap-2 ml-4">
+                                  {/* Send Follow-up Dialog */}
                                   <Dialog>
                                     <DialogTrigger asChild>
-                                      <Button size="sm" className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white">
+                                      <Button size="sm" className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white">
                                         <Send className="h-4 w-4 mr-2" />
                                         Send Follow-up
                                       </Button>
@@ -865,23 +914,38 @@ const AdminDashboard = () => {
                                           <Textarea
                                             placeholder="URGENT: This is a hot lead with high potential. Please contact immediately and report back within 2 hours..."
                                             rows={4}
+                                            value={followUpMessage}
+                                            onChange={e => setFollowUpMessage(e.target.value)}
                                           />
                                         </div>
                                         <div className="flex gap-2 justify-end">
-                                          <Button variant="outline">Cancel</Button>
-                                          <Button className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white">
-                                            <Send className="h-4 w-4 mr-2" />
-                                            Send Urgent Request
+                                          <Button variant="outline" onClick={() => setFollowUpMessage('')}>Cancel</Button>
+                                          <Button 
+                                            onClick={() => sendFollowUpRequest(record)}
+                                            disabled={sendingFollowUp}
+                                            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                                          >
+                                            {sendingFollowUp ? (
+                                              <>
+                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                Sending...
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Send className="h-4 w-4 mr-2" />
+                                                Send Request
+                                              </>
+                                            )}
                                           </Button>
                                         </div>
                                       </div>
                                     </DialogContent>
                                   </Dialog>
-                                  
+                                  {/* View Call History Button */}
                                   <Button 
                                     size="sm" 
                                     variant="outline"
-                                    onClick={() => navigate('/call-history')}
+                                    onClick={() => navigate('/call-history?hot=true')}
                                   >
                                     <Eye className="h-4 w-4 mr-2" />
                                     Details
@@ -898,15 +962,16 @@ const AdminDashboard = () => {
                             <p className="text-muted-foreground mb-4">
                               Hot deals will appear here when leads score high and require immediate attention
                             </p>
-                            <Button onClick={() => navigate('/call-history')}>
+                            <Button onClick={() => navigate('/call-history?hot=true')}>
                               <TrendingUp className="h-4 w-4 mr-2" />
-                              View All Call History
+                              View All Hot Call History
                             </Button>
                           </div>
                         )}
                       </div>
-                    </CardContent>
-                  </Card>
+                    )}
+                  </CardContent>
+                </Card>
 
                   {/* Quick Actions */}
                   <Card>

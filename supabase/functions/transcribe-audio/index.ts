@@ -50,50 +50,54 @@ serve(async (req) => {
 
     console.log('Processing audio transcription request...', { mimeType, fileName });
 
-    // Try to use OpenAI Whisper for real transcription
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+    // Try to use OpenRouter for real transcription (supports OpenAI Whisper and other models)
+    const openrouterApiKey = Deno.env.get('OPENROUTER_API_KEY') || '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';
     
-    if (openaiApiKey) {
+    if (openrouterApiKey) {
       try {
         // Convert base64 to blob
         const audioBuffer = Uint8Array.from(atob(audio), c => c.charCodeAt(0));
         
-        // Create form data for OpenAI API
+        // Create form data for OpenRouter API (compatible with OpenAI Whisper format)
         const formData = new FormData();
         const audioBlob = new Blob([audioBuffer], { type: mimeType || 'audio/webm' });
         formData.append('file', audioBlob, fileName || 'audio.webm');
-        formData.append('model', 'whisper-1');
+        formData.append('model', 'openai/whisper-1');
         formData.append('language', 'en');
         formData.append('response_format', 'json');
         
-        // Call OpenAI Whisper API
-        const whisperResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+        // Call OpenRouter Whisper API
+        const whisperResponse = await fetch('https://openrouter.ai/api/v1/audio/transcriptions', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${openaiApiKey}`,
+            'Authorization': `Bearer ${openrouterApiKey}`,
+            'HTTP-Referer': 'https://sales-qualify.app',
+            'X-Title': 'Sales Qualify - Call Transcription'
           },
           body: formData,
         });
 
         if (whisperResponse.ok) {
           const whisperData = await whisperResponse.json();
-          console.log('OpenAI Whisper transcription successful');
+          console.log('OpenRouter Whisper transcription successful');
           
           return new Response(
             JSON.stringify({ 
               text: whisperData.text,
-              source: 'openai_whisper',
-              duration: whisperData.duration || null
+              source: 'openrouter_whisper',
+              duration: whisperData.duration || null,
+              model: 'openai/whisper-1'
             }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         } else {
-          console.warn('OpenAI Whisper API failed:', await whisperResponse.text());
-          throw new Error('Whisper API failed');
+          const errorText = await whisperResponse.text();
+          console.warn('OpenRouter Whisper API failed:', errorText);
+          throw new Error(`OpenRouter API failed: ${errorText}`);
         }
         
       } catch (whisperError) {
-        console.error('OpenAI Whisper error:', whisperError);
+        console.error('OpenRouter Whisper error:', whisperError);
         // Fall back to mock transcript
       }
     }

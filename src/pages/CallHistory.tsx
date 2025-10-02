@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import ExportDialog from '@/components/ExportDialog';
 import { 
@@ -81,15 +81,27 @@ const CallHistory = () => {
   const [sendingFollowUp, setSendingFollowUp] = useState(false);
   
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { profile } = useAuth();
 
   useEffect(() => {
+    if (!profile) return;
+    
+    // Check for filters in query params
+    const params = new URLSearchParams(location.search);
+    if (params.get('hot') === 'true') {
+      setHotDealsOnly(true);
+    }
+    if (params.get('status')) {
+      setStatusFilter(params.get('status') || 'all');
+    }
+    
     fetchCallRecords();
     if (profile?.role === 'admin') {
       fetchSalesReps();
     }
-  }, [profile]);
+  }, [profile, location.search]);
 
   useEffect(() => {
     filterRecords();
@@ -97,22 +109,36 @@ const CallHistory = () => {
 
   const fetchSalesReps = async () => {
     try {
+      console.log('Fetching sales reps...');
       const { data, error } = await supabase
         .from('profiles')
         .select('id, full_name, email')
         .eq('role', 'rep')
         .order('full_name');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Sales reps fetch error:', error);
+        throw error;
+      }
+      
+      console.log('Fetched sales reps:', data?.length || 0);
       setSalesReps(data || []);
     } catch (error: any) {
       console.error('Error fetching sales reps:', error);
+      toast({
+        title: "Warning",
+        description: "Could not load sales representatives list",
+        variant: "destructive",
+      });
     }
   };
 
   const fetchCallRecords = async () => {
     try {
-      const { data, error } = await supabase
+      setLoading(true);
+      console.log('Fetching call records...');
+      
+      let query = supabase
         .from('call_records')
         .select(`
           *,
@@ -130,13 +156,25 @@ const CallHistory = () => {
         `)
         .order('call_timestamp', { ascending: false });
 
-      if (error) throw error;
+      // Apply filters based on user role and query params
+      if (profile?.role === 'rep') {
+        query = query.eq('rep_id', profile.id);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+      
+      console.log('Fetched call records:', data?.length || 0);
       setCallRecords(data || []);
     } catch (error: any) {
       console.error('Error fetching call records:', error);
       toast({
         title: "Error",
-        description: "Failed to load call history",
+        description: `Failed to load call history: ${error.message}`,
         variant: "destructive",
       });
     } finally {
@@ -145,6 +183,14 @@ const CallHistory = () => {
   };
 
   const filterRecords = () => {
+    console.log('Filtering records:', {
+      totalRecords: callRecords.length,
+      searchTerm,
+      statusFilter,
+      selectedRep,
+      hotDealsOnly
+    });
+    
     let filtered = callRecords;
 
     if (searchTerm) {
@@ -160,7 +206,7 @@ const CallHistory = () => {
       filtered = filtered.filter(record => record.qualification_status === statusFilter);
     }
 
-    if (selectedRep !== 'all') {
+    if (selectedRep !== 'all' && profile?.role === 'admin') {
       filtered = filtered.filter(record => record.rep_id === selectedRep);
     }
 
@@ -168,6 +214,7 @@ const CallHistory = () => {
       filtered = filtered.filter(record => record.is_hot_deal || record.qualification_status === 'hot');
     }
 
+    console.log('Filtered results:', filtered.length);
     setFilteredRecords(filtered);
   };
 
@@ -600,6 +647,16 @@ const CallHistory = () => {
             </Card>
           </div>
 
+          {/* Filters and Search */}
+          {hotDealsOnly && (
+            <div className="mb-4 p-3 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 rounded">
+              <strong>Hot Deals Only:</strong> Showing only hot leads and flagged deals.
+              <Button size="sm" variant="ghost" className="ml-4 text-yellow-700 underline" onClick={() => setHotDealsOnly(false)}>
+                Clear Hot Deals Filter
+              </Button>
+            </div>
+          )}
+
           {/* Call Records List */}
           <div className="space-y-4">
             {filteredRecords.length === 0 ? (
@@ -608,9 +665,11 @@ const CallHistory = () => {
                   <Phone className="h-12 w-12 text-muted-foreground mb-4" />
                   <h3 className="text-lg font-semibold mb-2 font-heading">No call records found</h3>
                   <p className="text-muted-foreground text-center">
-                    {searchTerm || statusFilter !== 'all' 
-                      ? 'Try adjusting your search or filters.'
-                      : 'Start qualifying leads to see call records here.'}
+                    {selectedRep !== 'all' ?
+                      'No call history found for the selected sales rep.' :
+                      hotDealsOnly ? 'No hot deals found. Try clearing the filter.' :
+                      searchTerm || statusFilter !== 'all' ? 'Try adjusting your search or filters.' :
+                      'Start qualifying leads to see call records here.'}
                   </p>
                 </CardContent>
               </Card>

@@ -238,10 +238,23 @@ const EnhancedCallRecorder = ({
 
       onTranscriptComplete(transcript);
 
-      toast({
-        title: "Transcription Complete",
-        description: "Your call has been transcribed successfully.",
-      });
+      // Show transcription source info
+      if (data?.source === 'openrouter_whisper') {
+        toast({
+          title: "🎯 AI Transcription Complete",
+          description: "Your call was transcribed using OpenRouter Whisper API.",
+        });
+      } else if (data?.source === 'openai_whisper') {
+        toast({
+          title: "🎯 OpenAI Transcription Complete", 
+          description: "Your call was transcribed using OpenAI Whisper API.",
+        });
+      } else {
+        toast({
+          title: "⚡ Transcription Complete",
+          description: data?.note || "Your call has been transcribed.",
+        });
+      }
 
     } catch (error: any) {
       console.error('Error transcribing audio:', error);
