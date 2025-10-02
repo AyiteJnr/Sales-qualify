@@ -220,7 +220,7 @@ const GoogleSheetsImport = () => {
     setLeads(prev => prev.map(lead => ({ ...lead, selected: !allSelected })));
   };
 
-  const updateLeadAssignment = (leadId: string, repId: string) => {
+  const updateLeadAssignment = (leadId: string, repId: string | null) => {
     setLeads(prev => prev.map(lead => 
       lead.id === leadId ? { ...lead, assignedRepId: repId } : lead
     ));
@@ -364,14 +364,14 @@ const GoogleSheetsImport = () => {
                           {salesReps.length > 0 && (
                             <TableCell>
                               <Select 
-                                value={lead.assignedRepId || ''} 
-                                onValueChange={(value) => updateLeadAssignment(lead.id, value)}
+                                value={lead.assignedRepId || 'unassigned'} 
+                                onValueChange={(value) => updateLeadAssignment(lead.id, value === 'unassigned' ? null : value)}
                               >
                                 <SelectTrigger className="w-40">
                                   <SelectValue placeholder="Assign..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="">Unassigned</SelectItem>
+                                  <SelectItem value="unassigned">Unassigned</SelectItem>
                                   {salesReps.map(rep => (
                                     <SelectItem key={rep.id} value={rep.id}>
                                       {rep.full_name}

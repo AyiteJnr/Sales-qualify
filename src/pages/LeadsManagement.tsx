@@ -212,8 +212,7 @@ const LeadsManagement = () => {
         source: lead.source || 'manual',
         status: lead.status || 'scheduled',
         notes: lead.notes || '',
-        assigned_rep_id: lead.assigned_rep_id || '',
-        scheduled_time: lead.scheduled_time || null
+        assigned_rep_id: lead.assigned_rep_id || null
       });
       setIsEditDialogOpen(true);
     } catch (error) {
@@ -237,7 +236,8 @@ const LeadsManagement = () => {
       phone: '',
       source: 'manual',
       status: 'scheduled',
-      notes: ''
+      notes: '',
+      assigned_rep_id: null
     });
     setIsCreateDialogOpen(true);
   };
@@ -791,14 +791,14 @@ const LeadsManagement = () => {
                 <div>
                   <Label htmlFor="assigned_rep">Assigned Rep</Label>
                   <Select 
-                    value={editingLead.assigned_rep_id || ''} 
-                    onValueChange={(value) => setEditingLead({...editingLead, assigned_rep_id: value})}
+                    value={editingLead.assigned_rep_id || 'unassigned'} 
+                    onValueChange={(value) => setEditingLead({...editingLead, assigned_rep_id: value === 'unassigned' ? null : value})}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select a rep" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Unassigned</SelectItem>
+                      <SelectItem value="unassigned">Unassigned</SelectItem>
                       {reps.map(rep => (
                         <SelectItem key={rep.id} value={rep.id}>
                           {rep.full_name} ({rep.role})
