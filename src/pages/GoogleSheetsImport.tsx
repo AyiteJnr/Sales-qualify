@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,9 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Phone, ArrowLeft, Loader2, FileSpreadsheet, Download } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { Phone, ArrowLeft, Loader2, FileSpreadsheet, Download, Users } from 'lucide-react';
 
 interface LeadData {
   id: string;
@@ -19,50 +21,102 @@ interface LeadData {
   location: string;
   notes: string;
   selected: boolean;
+  assignedRepId?: string;
+}
+
+interface SalesRep {
+  id: string;
+  full_name: string;
+  email: string;
+  role: string;
 }
 
 const GoogleSheetsImport = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { profile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
   const [sheetUrl, setSheetUrl] = useState('');
   const [leads, setLeads] = useState<LeadData[]>([]);
+  const [salesReps, setSalesReps] = useState<SalesRep[]>([]);
   const [showPreview, setShowPreview] = useState(false);
+  const [defaultAssignedRep, setDefaultAssignedRep] = useState<string>('');
 
-  // Mock data for demonstration - in real implementation, this would come from Google Sheets API
-  const mockLeads: LeadData[] = [
-    {
-      id: '1',
-      name: 'John Smith',
-      email: 'john.smith@techcorp.com',
-      company: 'TechCorp Solutions',
-      phone: '+1-555-0123',
-      location: 'San Francisco, CA',
-      notes: 'Interested in enterprise package',
-      selected: true
-    },
-    {
-      id: '2',
-      name: 'Sarah Johnson',
-      email: 'sarah.j@innovate.io',
-      company: 'Innovate Labs',
-      phone: '+1-555-0124',
-      location: 'Austin, TX',
-      notes: 'Looking for Q2 implementation',
-      selected: true
-    },
-    {
-      id: '3',
-      name: 'Mike Chen',
-      email: 'mchen@startup.co',
-      company: 'GrowthStartup Inc',
-      phone: '+1-555-0125',
-      location: 'New York, NY',
-      notes: 'Budget approved, ready to proceed',
-      selected: true
+  // Generate dynamic mock data for demonstration
+  const generateMockLeads = (): LeadData[] => {
+    const firstNames = ['John', 'Sarah', 'Mike', 'Emma', 'David', 'Lisa', 'Robert', 'Jennifer', 'Michael', 'Amanda', 'Chris', 'Jessica', 'Daniel', 'Ashley', 'Matthew'];
+    const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson'];
+    const companies = ['TechCorp Solutions', 'Innovate Labs', 'GrowthStartup Inc', 'Digital Dynamics', 'Future Systems', 'Smart Solutions', 'NextGen Tech', 'CloudFirst Inc', 'DataDriven Co', 'AI Innovations', 'Cyber Solutions', 'WebTech Pro', 'Mobile First', 'SaaS Experts', 'DevOps Masters'];
+    const locations = ['San Francisco, CA', 'Austin, TX', 'New York, NY', 'Seattle, WA', 'Boston, MA', 'Chicago, IL', 'Los Angeles, CA', 'Denver, CO', 'Atlanta, GA', 'Miami, FL', 'Portland, OR', 'Nashville, TN', 'Phoenix, AZ', 'Dallas, TX', 'Philadelphia, PA'];
+    const notes = [
+      'Interested in enterprise package',
+      'Looking for Q2 implementation',
+      'Budget approved, ready to proceed',
+      'Needs demo before decision',
+      'Comparing with competitors',
+      'Urgent requirement - ASAP',
+      'Scaling team, needs solution',
+      'Current system failing',
+      'Expansion into new markets',
+      'Cost optimization priority',
+      'Security compliance required',
+      'Integration with existing tools',
+      'Mobile-first approach needed',
+      'Cloud migration in progress',
+      'Startup funding secured'
+    ];
+
+    const leadCount = Math.floor(Math.random() * 8) + 5; // 5-12 leads
+    const leads: LeadData[] = [];
+
+    for (let i = 0; i < leadCount; i++) {
+      const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+      const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+      const company = companies[Math.floor(Math.random() * companies.length)];
+      const location = locations[Math.floor(Math.random() * locations.length)];
+      const note = notes[Math.floor(Math.random() * notes.length)];
+      
+      leads.push({
+        id: `${Date.now()}_${i}`,
+        name: `${firstName} ${lastName}`,
+        email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@${company.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '')}.com`,
+        company: company,
+        phone: `+1-555-${String(Math.floor(Math.random() * 9000) + 1000)}`,
+        location: location,
+        notes: note,
+        selected: true,
+        assignedRepId: defaultAssignedRep || ''
+      });
     }
-  ];
+
+    return leads;
+  };
+
+  // Fetch sales reps on component mount
+  useEffect(() => {
+    fetchSalesReps();
+  }, []);
+
+  const fetchSalesReps = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, role')
+        .order('full_name');
+
+      if (error) throw error;
+      
+      setSalesReps(data || []);
+      
+      // If current user is a sales rep, set them as default
+      if (profile?.role === 'rep') {
+        setDefaultAssignedRep(profile.id);
+      }
+    } catch (error) {
+      console.error('Error fetching sales reps:', error);
+    }
+  };
 
   const handleFetchLeads = async () => {
     if (!sheetUrl) {
@@ -82,16 +136,17 @@ const GoogleSheetsImport = () => {
       // 2. Use Google Sheets API to fetch data
       // 3. Parse the spreadsheet data
       
-      // For now, we'll use mock data
+      // For demonstration, we'll generate dynamic mock data
       setTimeout(() => {
-        setLeads(mockLeads);
+        const dynamicLeads = generateMockLeads();
+        setLeads(dynamicLeads);
         setShowPreview(true);
         setLoading(false);
         toast({
-          title: "Leads Fetched",
-          description: `Found ${mockLeads.length} leads in the spreadsheet`,
+          title: "Leads Fetched Successfully",
+          description: `Found ${dynamicLeads.length} leads in the spreadsheet`,
         });
-      }, 2000);
+      }, 1500);
       
     } catch (error: any) {
       toast({
@@ -128,7 +183,7 @@ const GoogleSheetsImport = () => {
         notes: lead.notes,
         status: 'scheduled' as const,
         source: 'google_sheets',
-        assigned_rep_id: null,
+        assigned_rep_id: lead.assignedRepId || null,
       }));
 
       const { error } = await supabase
@@ -163,6 +218,17 @@ const GoogleSheetsImport = () => {
   const toggleSelectAll = () => {
     const allSelected = leads.every(lead => lead.selected);
     setLeads(prev => prev.map(lead => ({ ...lead, selected: !allSelected })));
+  };
+
+  const updateLeadAssignment = (leadId: string, repId: string) => {
+    setLeads(prev => prev.map(lead => 
+      lead.id === leadId ? { ...lead, assignedRepId: repId } : lead
+    ));
+  };
+
+  const assignAllToRep = (repId: string) => {
+    setLeads(prev => prev.map(lead => ({ ...lead, assignedRepId: repId })));
+    setDefaultAssignedRep(repId);
   };
 
   return (
@@ -238,6 +304,29 @@ const GoogleSheetsImport = () => {
                   </div>
                 </div>
 
+                {/* Bulk Assignment Controls */}
+                {profile?.role === 'admin' && salesReps.length > 0 && (
+                  <div className="flex items-center gap-4 p-4 bg-blue-50 rounded-lg">
+                    <Users className="h-5 w-5 text-blue-600" />
+                    <Label htmlFor="bulk-assign" className="text-sm font-medium">
+                      Assign all leads to:
+                    </Label>
+                    <Select value={defaultAssignedRep} onValueChange={assignAllToRep}>
+                      <SelectTrigger className="w-64">
+                        <SelectValue placeholder="Select sales rep" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Unassigned</SelectItem>
+                        {salesReps.map(rep => (
+                          <SelectItem key={rep.id} value={rep.id}>
+                            {rep.full_name} ({rep.role})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
                 <div className="border rounded-lg">
                   <Table>
                     <TableHeader>
@@ -254,6 +343,7 @@ const GoogleSheetsImport = () => {
                         <TableHead>Phone</TableHead>
                         <TableHead>Location</TableHead>
                         <TableHead>Notes</TableHead>
+                        {salesReps.length > 0 && <TableHead>Assigned To</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -271,6 +361,26 @@ const GoogleSheetsImport = () => {
                           <TableCell>{lead.phone}</TableCell>
                           <TableCell>{lead.location}</TableCell>
                           <TableCell className="max-w-xs truncate">{lead.notes}</TableCell>
+                          {salesReps.length > 0 && (
+                            <TableCell>
+                              <Select 
+                                value={lead.assignedRepId || ''} 
+                                onValueChange={(value) => updateLeadAssignment(lead.id, value)}
+                              >
+                                <SelectTrigger className="w-40">
+                                  <SelectValue placeholder="Assign..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="">Unassigned</SelectItem>
+                                  {salesReps.map(rep => (
+                                    <SelectItem key={rep.id} value={rep.id}>
+                                      {rep.full_name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                          )}
                         </TableRow>
                       ))}
                     </TableBody>

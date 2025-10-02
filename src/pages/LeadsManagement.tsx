@@ -197,9 +197,33 @@ const LeadsManagement = () => {
   };
 
   const handleEditLead = (lead: Lead) => {
-    setSelectedLead(lead);
-    setEditingLead(lead);
-    setIsEditDialogOpen(true);
+    try {
+      console.log('Opening edit dialog for lead:', lead);
+      setSelectedLead(lead);
+      setEditingLead({
+        ...lead,
+        // Ensure all fields are properly set
+        client_id: lead.client_id || '',
+        full_name: lead.full_name || '',
+        company_name: lead.company_name || '',
+        location: lead.location || '',
+        email: lead.email || '',
+        phone: lead.phone || '',
+        source: lead.source || 'manual',
+        status: lead.status || 'scheduled',
+        notes: lead.notes || '',
+        assigned_rep_id: lead.assigned_rep_id || '',
+        scheduled_time: lead.scheduled_time || null
+      });
+      setIsEditDialogOpen(true);
+    } catch (error) {
+      console.error('Error opening edit dialog:', error);
+      toast({
+        title: "Error",
+        description: "Failed to open edit dialog. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleCreateLead = () => {
@@ -637,10 +661,21 @@ const LeadsManagement = () => {
 
         {/* Edit/Create Lead Dialog */}
         <Dialog open={isEditDialogOpen || isCreateDialogOpen} onOpenChange={(open) => {
-          if (!open) {
+          try {
+            if (!open) {
+              console.log('Closing dialog');
+              setIsEditDialogOpen(false);
+              setIsCreateDialogOpen(false);
+              setEditingLead({});
+              setSelectedLead(null);
+            }
+          } catch (error) {
+            console.error('Error closing dialog:', error);
+            // Force close anyway
             setIsEditDialogOpen(false);
             setIsCreateDialogOpen(false);
             setEditingLead({});
+            setSelectedLead(null);
           }
         }}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -657,13 +692,27 @@ const LeadsManagement = () => {
             </DialogHeader>
 
             <div className="space-y-6">
+              {/* Debug info */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
+                  Debug: Selected Lead ID: {selectedLead?.id || 'New'} | 
+                  Editing: {editingLead.full_name || 'Empty'}
+                </div>
+              )}
+              
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="full_name">Full Name *</Label>
                   <Input
                     id="full_name"
                     value={editingLead.full_name || ''}
-                    onChange={(e) => setEditingLead({...editingLead, full_name: e.target.value})}
+                    onChange={(e) => {
+                      try {
+                        setEditingLead({...editingLead, full_name: e.target.value});
+                      } catch (error) {
+                        console.error('Error updating full_name:', error);
+                      }
+                    }}
                     placeholder="Enter full name"
                   />
                 </div>

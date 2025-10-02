@@ -180,17 +180,43 @@ const EnhancedCallRecorder = ({
     try {
       setRecordingState(prev => ({ ...prev, isTranscribing: true }));
       
-      // Convert blob to base64
-      const arrayBuffer = await audioBlob.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      console.log('Starting transcription for blob:', audioBlob.size, 'bytes');
+      
+      // Check file size (limit to 25MB for better performance)
+      if (audioBlob.size > 25 * 1024 * 1024) {
+        throw new Error('Audio file too large. Please use a file smaller than 25MB.');
+      }
+      
+      // Convert blob to base64 using FileReader for better memory handling
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          // Remove data URL prefix (data:audio/webm;base64,)
+          const base64Data = result.split(',')[1];
+          resolve(base64Data);
+        };
+        reader.onerror = () => reject(new Error('Failed to read audio file'));
+        reader.readAsDataURL(audioBlob);
+      });
+      
+      console.log('Audio converted to base64, length:', base64.length);
       
       const { data, error } = await supabase.functions.invoke('transcribe-audio', {
-        body: { audio: base64 }
+        body: { 
+          audio: base64,
+          mimeType: audioBlob.type || 'audio/webm'
+        }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw error;
+      }
 
-      const transcript = data.text || 'No transcript available';
+      console.log('Transcription response:', data);
+      
+      const transcript = data?.text || 'No transcript available';
       
       setRecordingState(prev => ({
         ...prev,
@@ -206,12 +232,12 @@ const EnhancedCallRecorder = ({
         description: "Your call has been transcribed successfully.",
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error transcribing audio:', error);
       setRecordingState(prev => ({ ...prev, isTranscribing: false }));
       toast({
         title: "Transcription Error",
-        description: "Failed to transcribe audio. Please try again.",
+        description: error.message || "Failed to transcribe audio. Please try again.",
         variant: "destructive",
       });
     }
@@ -240,16 +266,43 @@ const EnhancedCallRecorder = ({
     try {
       setIsUploadTranscribing(true);
       
-      const arrayBuffer = await uploadedFile.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      console.log('Starting transcription for uploaded file:', uploadedFile.name, uploadedFile.size, 'bytes');
+      
+      // Check file size
+      if (uploadedFile.size > 25 * 1024 * 1024) {
+        throw new Error('Audio file too large. Please use a file smaller than 25MB.');
+      }
+      
+      // Convert file to base64 using FileReader
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          const base64Data = result.split(',')[1];
+          resolve(base64Data);
+        };
+        reader.onerror = () => reject(new Error('Failed to read uploaded file'));
+        reader.readAsDataURL(uploadedFile);
+      });
+      
+      console.log('Uploaded file converted to base64, length:', base64.length);
       
       const { data, error } = await supabase.functions.invoke('transcribe-audio', {
-        body: { audio: base64 }
+        body: { 
+          audio: base64,
+          mimeType: uploadedFile.type,
+          fileName: uploadedFile.name
+        }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw error;
+      }
 
-      const transcript = data.text || 'No transcript available';
+      console.log('Transcription response:', data);
+      
+      const transcript = data?.text || 'No transcript available';
       setUploadTranscript(transcript);
       setUploadComplete(true);
       onTranscriptComplete(transcript);
@@ -259,11 +312,11 @@ const EnhancedCallRecorder = ({
         description: "Your uploaded file has been transcribed successfully.",
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error transcribing uploaded file:', error);
       toast({
         title: "Transcription Error",
-        description: "Failed to transcribe uploaded file. Please try again.",
+        description: error.message || "Failed to transcribe uploaded file. Please try again.",
         variant: "destructive",
       });
     } finally {

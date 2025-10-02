@@ -130,17 +130,199 @@ const CallHistory = () => {
   };
 
   const downloadTranscript = (record: CallRecord) => {
-    if (!record.transcript_text) return;
+    if (!record.transcript_text) {
+      toast({
+        title: "No Transcript",
+        description: "This call doesn't have a transcript available.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     const blob = new Blob([record.transcript_text], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `transcript_${record.clients?.full_name || 'unknown'}_${format(new Date(record.call_timestamp), 'yyyy-MM-dd')}.txt`;
+    a.download = `transcript_${record.clients?.full_name?.replace(/\s+/g, '_') || 'unknown'}_${format(new Date(record.call_timestamp), 'yyyy-MM-dd')}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Download Started",
+      description: "Transcript download has started.",
+    });
+  };
+
+  const downloadCallReport = async (record: CallRecord) => {
+    try {
+      // Fetch questions for this call
+      const { data: questions, error: questionsError } = await supabase
+        .from('questions')
+        .select('*')
+        .eq('is_active', true)
+        .order('order_index');
+
+      if (questionsError) {
+        console.error('Error fetching questions:', questionsError);
+      }
+
+      // Create comprehensive call report
+      const report = generateCallReport(record, questions || []);
+      
+      const blob = new Blob([report], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `call_report_${record.clients?.full_name?.replace(/\s+/g, '_') || 'unknown'}_${format(new Date(record.call_timestamp), 'yyyy-MM-dd')}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Download Started",
+        description: "Call report download has started.",
+      });
+    } catch (error) {
+      console.error('Error downloading call report:', error);
+      toast({
+        title: "Download Failed",
+        description: "Failed to generate call report.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const downloadCallReportCSV = async (record: CallRecord) => {
+    try {
+      const { data: questions, error: questionsError } = await supabase
+        .from('questions')
+        .select('*')
+        .eq('is_active', true)
+        .order('order_index');
+
+      if (questionsError) {
+        console.error('Error fetching questions:', questionsError);
+      }
+
+      const csvContent = generateCallReportCSV(record, questions || []);
+      
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `call_report_${record.clients?.full_name?.replace(/\s+/g, '_') || 'unknown'}_${format(new Date(record.call_timestamp), 'yyyy-MM-dd')}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "CSV Download Started",
+        description: "Call report CSV download has started.",
+      });
+    } catch (error) {
+      console.error('Error downloading CSV:', error);
+      toast({
+        title: "Download Failed",
+        description: "Failed to generate CSV report.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const generateCallReport = (record: CallRecord, questions: any[]) => {
+    const client = record.clients;
+    const answers = record.answers || {};
+    
+    let report = `SALES CALL REPORT\n`;
+    report += `===================\n\n`;
+    
+    // Call Information
+    report += `CALL INFORMATION\n`;
+    report += `----------------\n`;
+    report += `Date: ${format(new Date(record.call_timestamp), 'PPP')}\n`;
+    report += `Time: ${format(new Date(record.call_timestamp), 'p')}\n`;
+    report += `Call ID: ${record.id}\n`;
+    report += `Score: ${record.score}/100\n`;
+    report += `Status: ${record.qualification_status?.toUpperCase() || 'N/A'}\n\n`;
+    
+    // Client Information
+    report += `CLIENT INFORMATION\n`;
+    report += `------------------\n`;
+    report += `Name: ${client?.full_name || 'N/A'}\n`;
+    report += `Company: ${client?.company_name || 'N/A'}\n`;
+    report += `Email: ${client?.email || 'N/A'}\n`;
+    report += `Phone: ${client?.phone || 'N/A'}\n\n`;
+    
+    // Questions and Answers
+    report += `QUALIFICATION QUESTIONS & ANSWERS\n`;
+    report += `=================================\n\n`;
+    
+    questions.forEach((question, index) => {
+      const answer = answers[question.id] || 'No answer provided';
+      report += `${index + 1}. ${question.text}\n`;
+      report += `Answer: ${answer}\n\n`;
+    });
+    
+    // Transcript
+    if (record.transcript_text) {
+      report += `CALL TRANSCRIPT\n`;
+      report += `===============\n`;
+      report += `${record.transcript_text}\n\n`;
+    }
+    
+    // Comments and Next Actions
+    if (record.comments) {
+      report += `COMMENTS\n`;
+      report += `========\n`;
+      report += `${record.comments}\n\n`;
+    }
+    
+    if (record.next_action) {
+      report += `NEXT ACTIONS\n`;
+      report += `============\n`;
+      report += `${record.next_action}\n\n`;
+    }
+    
+    report += `Report generated on: ${format(new Date(), 'PPP p')}\n`;
+    
+    return report;
+  };
+
+  const generateCallReportCSV = (record: CallRecord, questions: any[]) => {
+    const client = record.clients;
+    const answers = record.answers || {};
+    
+    let csv = 'Field,Value\n';
+    
+    // Basic information
+    csv += `"Call Date","${format(new Date(record.call_timestamp), 'yyyy-MM-dd')}"\n`;
+    csv += `"Call Time","${format(new Date(record.call_timestamp), 'HH:mm:ss')}"\n`;
+    csv += `"Call ID","${record.id}"\n`;
+    csv += `"Score","${record.score}"\n`;
+    csv += `"Status","${record.qualification_status || 'N/A'}"\n`;
+    csv += `"Client Name","${client?.full_name || 'N/A'}"\n`;
+    csv += `"Company","${client?.company_name || 'N/A'}"\n`;
+    csv += `"Email","${client?.email || 'N/A'}"\n`;
+    csv += `"Phone","${client?.phone || 'N/A'}"\n`;
+    
+    // Questions and answers
+    questions.forEach((question, index) => {
+      const answer = answers[question.id] || 'No answer provided';
+      csv += `"Question ${index + 1}","${question.text.replace(/"/g, '""')}"\n`;
+      csv += `"Answer ${index + 1}","${answer.replace(/"/g, '""')}"\n`;
+    });
+    
+    // Additional fields
+    csv += `"Comments","${(record.comments || 'N/A').replace(/"/g, '""')}"\n`;
+    csv += `"Next Action","${(record.next_action || 'N/A').replace(/"/g, '""')}"\n`;
+    csv += `"Has Transcript","${record.transcript_text ? 'Yes' : 'No'}"\n`;
+    csv += `"Has Audio","${record.audio_url ? 'Yes' : 'No'}"\n`;
+    
+    return csv;
   };
 
   if (loading) {
@@ -311,7 +493,7 @@ const CallHistory = () => {
                       </div>
                     </div>
 
-                    <div className="flex gap-2 mt-4">
+                    <div className="flex flex-wrap gap-2 mt-4">
                       <Dialog>
                         <DialogTrigger asChild>
                           <Button 
@@ -404,6 +586,24 @@ const CallHistory = () => {
                         </DialogContent>
                       </Dialog>
 
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => downloadCallReport(record)}
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        Download Report
+                      </Button>
+
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => downloadCallReportCSV(record)}
+                      >
+                        <FileSpreadsheet className="h-4 w-4 mr-2" />
+                        Download CSV
+                      </Button>
+
                       {record.transcript_text && (
                         <Button 
                           variant="outline" 
@@ -411,7 +611,7 @@ const CallHistory = () => {
                           onClick={() => downloadTranscript(record)}
                         >
                           <Download className="h-4 w-4 mr-2" />
-                          Download Transcript
+                          Transcript Only
                         </Button>
                       )}
 
