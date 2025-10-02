@@ -77,11 +77,13 @@ const SalesDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    if (profile?.role !== 'rep') {
-      navigate('/admin-dashboard');
+    if (profile && profile.role !== 'rep') {
+      navigate('/admin-dashboard', { replace: true });
       return;
     }
-    fetchDashboardData();
+    if (profile?.role === 'rep') {
+      fetchDashboardData();
+    }
   }, [profile, navigate]);
 
   const fetchDashboardData = async () => {

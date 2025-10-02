@@ -73,11 +73,13 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (profile?.role !== 'admin') {
-      navigate('/dashboard');
+    if (profile && profile.role !== 'admin') {
+      navigate('/sales-dashboard', { replace: true });
       return;
     }
-    fetchDashboardData();
+    if (profile?.role === 'admin') {
+      fetchDashboardData();
+    }
   }, [profile, navigate]);
 
   const fetchDashboardData = async () => {

@@ -129,9 +129,11 @@ const LeadsManagement = () => {
       console.error('Error fetching leads:', error);
       toast({
         title: "Error",
-        description: `Failed to fetch leads: ${error.message || 'Unknown error'}`,
+        description: `Failed to fetch leads: ${error.message || 'Database connection error'}`,
         variant: "destructive",
       });
+      // Set empty array on error to prevent UI issues
+      setLeads([]);
     } finally {
       setLoading(false);
     }

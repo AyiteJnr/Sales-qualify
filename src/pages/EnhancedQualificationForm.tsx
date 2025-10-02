@@ -181,23 +181,54 @@ const EnhancedQualificationForm = () => {
   const autoExtractAnswers = (transcriptText: string) => {
     const extractedAnswers: Record<string, string> = {};
     
-    // Simple extraction based on question keywords
+    // Enhanced extraction based on question keywords and context
     questions.forEach(question => {
-      const questionWords = question.text.toLowerCase().split(' ');
-      const keyWords = questionWords.filter(word => 
-        word.length > 3 && !['what', 'when', 'where', 'who', 'how', 'are', 'you', 'the', 'and', 'for'].includes(word)
-      );
+      const questionText = question.text.toLowerCase();
+      let extractedAnswer = '';
       
-      if (keyWords.length > 0) {
-        // Find sentences in transcript that contain keywords
-        const sentences = transcriptText.split(/[.!?]+/);
-        const relevantSentences = sentences.filter(sentence => 
-          keyWords.some(keyword => sentence.toLowerCase().includes(keyword))
+      // Define extraction patterns for common qualification questions
+      if (questionText.includes('budget') || questionText.includes('spend')) {
+        const budgetMatch = transcriptText.match(/budget[^.]*?(\$[\d,]+|\d+[k|K]?|\d+\s*thousand|\d+\s*million)/i);
+        if (budgetMatch) {
+          extractedAnswer = budgetMatch[0];
+        }
+      } else if (questionText.includes('timeline') || questionText.includes('when')) {
+        const timelineMatch = transcriptText.match(/(next\s+\w+|within\s+\w+|\d+\s*months?|\d+\s*weeks?|quarter|immediately|soon)/i);
+        if (timelineMatch) {
+          extractedAnswer = timelineMatch[0];
+        }
+      } else if (questionText.includes('decision') || questionText.includes('authority')) {
+        const decisionMatch = transcriptText.match(/(decision[^.]*|authority[^.]*|approve[^.]*|VP|director|manager|CEO|CTO)/i);
+        if (decisionMatch) {
+          extractedAnswer = decisionMatch[0];
+        }
+      } else if (questionText.includes('pain') || questionText.includes('problem') || questionText.includes('challenge')) {
+        const painMatch = transcriptText.match(/(problem[^.]*|challenge[^.]*|issue[^.]*|difficult[^.]*|struggle[^.]*)/i);
+        if (painMatch) {
+          extractedAnswer = painMatch[0];
+        }
+      } else {
+        // Fallback: keyword-based extraction
+        const questionWords = question.text.toLowerCase().split(' ');
+        const keyWords = questionWords.filter(word => 
+          word.length > 3 && !['what', 'when', 'where', 'who', 'how', 'are', 'you', 'the', 'and', 'for', 'your', 'this', 'that'].includes(word)
         );
         
-        if (relevantSentences.length > 0) {
-          extractedAnswers[question.id] = relevantSentences[0].trim();
+        if (keyWords.length > 0) {
+          // Find sentences in transcript that contain keywords
+          const sentences = transcriptText.split(/[.!?]+/);
+          const relevantSentences = sentences.filter(sentence => 
+            keyWords.some(keyword => sentence.toLowerCase().includes(keyword))
+          );
+          
+          if (relevantSentences.length > 0) {
+            extractedAnswer = relevantSentences[0].trim();
+          }
         }
+      }
+      
+      if (extractedAnswer) {
+        extractedAnswers[question.id] = extractedAnswer;
       }
     });
     

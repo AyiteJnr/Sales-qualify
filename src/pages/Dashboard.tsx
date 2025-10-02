@@ -30,10 +30,13 @@ const Dashboard = () => {
   // Route users to appropriate dashboard based on role
   useEffect(() => {
     if (!authLoading && profile) {
-      if (profile.role === 'admin') {
-        navigate('/admin-dashboard');
-      } else if (profile.role === 'rep') {
-        navigate('/sales-dashboard');
+      // Only redirect if we're on the generic dashboard route
+      if (window.location.pathname === '/dashboard') {
+        if (profile.role === 'admin') {
+          navigate('/admin-dashboard', { replace: true });
+        } else if (profile.role === 'rep') {
+          navigate('/sales-dashboard', { replace: true });
+        }
       }
     }
   }, [profile, authLoading, navigate]);

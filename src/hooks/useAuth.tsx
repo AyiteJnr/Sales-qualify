@@ -136,12 +136,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(null);
       setSession(null);
       
-      // Navigate to auth page after successful sign out
-      window.location.href = '/auth';
+      // Use window.location for reliable navigation after sign out
+      setTimeout(() => {
+        window.location.href = '/auth';
+      }, 100);
       
       return { error: null };
     } catch (error: any) {
       console.error('Sign out error:', error);
+      // Even if there's an error, clear local state and redirect
+      setUser(null);
+      setProfile(null);
+      setSession(null);
+      setTimeout(() => {
+        window.location.href = '/auth';
+      }, 100);
       return { error };
     }
   };
