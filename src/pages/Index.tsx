@@ -40,7 +40,7 @@ const Index = () => {
           </p>
           <div className="flex gap-4 justify-center">
             <Button size="lg" onClick={() => navigate('/auth')}>
-              Get Started
+              Get Started Now
             </Button>
             <Button variant="outline" size="lg">
               Learn More
@@ -110,7 +110,7 @@ const Index = () => {
               Join sales teams already using SalesQualify to streamline their qualification process
             </p>
             <Button size="lg" variant="secondary" onClick={() => navigate('/auth')}>
-              Start Your Free Trial
+              Get Started Now
             </Button>
           </CardContent>
         </Card>
