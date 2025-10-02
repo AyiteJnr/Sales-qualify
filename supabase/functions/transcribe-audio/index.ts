@@ -53,10 +53,21 @@ serve(async (req) => {
     // Try to use OpenRouter for real transcription (supports OpenAI Whisper and other models)
     const openrouterApiKey = Deno.env.get('OPENROUTER_API_KEY') || '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';
     
-    if (openrouterApiKey) {
+    console.log('OpenRouter API Key available:', openrouterApiKey ? 'Yes' : 'No');
+    
+    if (openrouterApiKey && openrouterApiKey.startsWith('sk-or-v1-')) {
       try {
-        // Convert base64 to blob
-        const audioBuffer = Uint8Array.from(atob(audio), c => c.charCodeAt(0));
+        console.log('Attempting OpenRouter transcription...');
+        
+        // Convert base64 to blob with better error handling
+        let audioBuffer: Uint8Array;
+        try {
+          audioBuffer = Uint8Array.from(atob(audio), c => c.charCodeAt(0));
+          console.log('Audio buffer created, size:', audioBuffer.length, 'bytes');
+        } catch (decodeError) {
+          console.error('Failed to decode base64 audio:', decodeError);
+          throw new Error('Invalid audio data format');
+        }
         
         // Create form data for OpenRouter API (compatible with OpenAI Whisper format)
         const formData = new FormData();
@@ -65,6 +76,9 @@ serve(async (req) => {
         formData.append('model', 'openai/whisper-1');
         formData.append('language', 'en');
         formData.append('response_format', 'json');
+        formData.append('temperature', '0.1'); // Lower temperature for more consistent results
+        
+        console.log('Calling OpenRouter API...');
         
         // Call OpenRouter Whisper API
         const whisperResponse = await fetch('https://openrouter.ai/api/v1/audio/transcriptions', {
@@ -72,7 +86,8 @@ serve(async (req) => {
           headers: {
             'Authorization': `Bearer ${openrouterApiKey}`,
             'HTTP-Referer': 'https://sales-qualify.app',
-            'X-Title': 'Sales Qualify - Call Transcription'
+            'X-Title': 'Sales Qualify - Call Transcription',
+            'User-Agent': 'Sales-Qualify/1.0'
           },
           body: formData,
         });

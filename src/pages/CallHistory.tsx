@@ -32,6 +32,12 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 
+interface Question {
+  id: string;
+  text: string;
+  [key: string]: any;
+}
+
 interface CallRecord {
   id: string;
   client_id: string;
@@ -44,7 +50,7 @@ interface CallRecord {
   recording_url: string | null;
   next_action: string | null;
   comments: string | null;
-  answers: any;
+  answers: Record<string, string>;
   is_hot_deal: boolean;
   follow_up_required: boolean;
   call_duration: number;
@@ -199,30 +205,53 @@ const CallHistory = () => {
       hotDealsOnly
     });
     
-    let filtered = callRecords;
+    let filtered = [...callRecords]; // Create a copy to avoid mutations
 
-    if (searchTerm) {
-      filtered = filtered.filter(record => 
-        record.clients?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        record.clients?.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        record.clients?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        record.profiles?.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+    // Search filter
+    if (searchTerm && searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase().trim();
+      filtered = filtered.filter(record => {
+        const clientName = record.clients?.full_name?.toLowerCase() || '';
+        const companyName = record.clients?.company_name?.toLowerCase() || '';
+        const clientEmail = record.clients?.email?.toLowerCase() || '';
+        const repName = record.profiles?.full_name?.toLowerCase() || '';
+        
+        return clientName.includes(searchLower) ||
+               companyName.includes(searchLower) ||
+               clientEmail.includes(searchLower) ||
+               repName.includes(searchLower);
+      });
     }
 
-    if (statusFilter !== 'all') {
+    // Status filter
+    if (statusFilter && statusFilter !== 'all') {
       filtered = filtered.filter(record => record.qualification_status === statusFilter);
     }
 
-    if (selectedRep !== 'all' && profile?.role === 'admin') {
-      filtered = filtered.filter(record => record.rep_id === selectedRep);
+    // Sales rep filter (admin only)
+    if (selectedRep && selectedRep !== 'all' && profile?.role === 'admin') {
+      filtered = filtered.filter(record => {
+        const recordRepId = record.rep_id;
+        console.log('Comparing rep IDs:', { recordRepId, selectedRep, match: recordRepId === selectedRep });
+        return recordRepId === selectedRep;
+      });
     }
 
+    // Hot deals filter
     if (hotDealsOnly) {
-      filtered = filtered.filter(record => record.is_hot_deal || record.qualification_status === 'hot');
+      filtered = filtered.filter(record => {
+        const isHot = record.is_hot_deal === true || record.qualification_status === 'hot';
+        console.log('Hot deal check:', { recordId: record.id, isHotDeal: record.is_hot_deal, status: record.qualification_status, isHot });
+        return isHot;
+      });
     }
 
-    console.log('Filtered results:', filtered.length);
+    console.log('Filtered results:', {
+      originalCount: callRecords.length,
+      filteredCount: filtered.length,
+      filters: { searchTerm, statusFilter, selectedRep, hotDealsOnly }
+    });
+    
     setFilteredRecords(filtered);
   };
 
@@ -238,7 +267,8 @@ const CallHistory = () => {
 
     setSendingFollowUp(true);
     try {
-      const { error } = await supabase.rpc('assign_lead_to_rep', {
+      // Use the new function that handles notifications properly
+      const { data, error } = await supabase.rpc('assign_lead_to_rep_with_notification', {
         p_client_id: callRecord.client_id,
         p_rep_id: callRecord.rep_id,
         p_admin_id: profile?.id,
@@ -246,19 +276,34 @@ const CallHistory = () => {
         p_priority: 'high'
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('RPC error:', error);
+        // Fallback: update the call record directly
+        const { error: updateError } = await supabase
+          .from('call_records')
+          .update({
+            admin_notes: `Follow-up request from admin: ${followUpMessage}`,
+            follow_up_required: true,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', callRecord.id);
+        
+        if (updateError) throw updateError;
+      }
 
       toast({
         title: "Follow-up Sent",
-        description: "Your follow-up request has been sent to the sales rep",
+        description: `Follow-up request sent to ${callRecord.profiles?.full_name || 'sales rep'}`,
       });
 
       setFollowUpMessage('');
+      // Refresh data to show updated status
+      fetchCallRecords();
     } catch (error: any) {
       console.error('Error sending follow-up:', error);
       toast({
         title: "Error",
-        description: "Failed to send follow-up request",
+        description: error.message || "Failed to send follow-up request",
         variant: "destructive",
       });
     } finally {
@@ -389,7 +434,7 @@ const CallHistory = () => {
     }
   };
 
-  const generateCallReport = (record: CallRecord, questions: any[]) => {
+  const generateCallReport = (record: CallRecord, questions: Question[]) => {
     const client = record.clients;
     const answers = record.answers || {};
     
@@ -448,7 +493,7 @@ const CallHistory = () => {
     return report;
   };
 
-  const generateCallReportCSV = (record: CallRecord, questions: any[]) => {
+  const generateCallReportCSV = (record: CallRecord, questions: Question[]) => {
     const client = record.clients;
     const answers = record.answers || {};
     
@@ -672,13 +717,26 @@ const CallHistory = () => {
                 <CardContent className="flex flex-col items-center justify-center py-12">
                   <Phone className="h-12 w-12 text-muted-foreground mb-4" />
                   <h3 className="text-lg font-semibold mb-2 font-heading">No call records found</h3>
-                  <p className="text-muted-foreground text-center">
+                  <p className="text-muted-foreground text-center mb-4">
                     {selectedRep !== 'all' ?
-                      'No call history found for the selected sales rep.' :
-                      hotDealsOnly ? 'No hot deals found. Try clearing the filter.' :
-                      searchTerm || statusFilter !== 'all' ? 'Try adjusting your search or filters.' :
+                      `No call history found for the selected sales rep. Total records: ${callRecords.length}` :
+                      hotDealsOnly ? `No hot deals found. Try clearing the filter. Total records: ${callRecords.length}` :
+                      searchTerm || statusFilter !== 'all' ? `No records match your filters. Try adjusting your search or filters. Total records: ${callRecords.length}` :
                       'Start qualifying leads to see call records here.'}
                   </p>
+                  {(searchTerm || statusFilter !== 'all' || selectedRep !== 'all' || hotDealsOnly) && (
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setSearchTerm('');
+                        setStatusFilter('all');
+                        setSelectedRep('all');
+                        setHotDealsOnly(false);
+                      }}
+                    >
+                      Clear All Filters
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             ) : (
@@ -874,7 +932,7 @@ const CallHistory = () => {
                       )}
 
                       {/* Admin Follow-up Actions */}
-                      {profile?.role === 'admin' && (record.is_hot_deal || record.qualification_status === 'hot') && (
+                      {profile?.role === 'admin' && (record.is_hot_deal || record.qualification_status === 'hot' || record.score >= 70) && (
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button size="sm" className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white">
@@ -887,18 +945,27 @@ const CallHistory = () => {
                               <DialogTitle>Send Follow-up Request</DialogTitle>
                             </DialogHeader>
                             <div className="space-y-4">
-                              <div>
-                                <p className="text-sm text-muted-foreground mb-2">
-                                  Send a priority follow-up request to {record.profiles?.full_name} for hot lead: {record.clients?.full_name}
+                              <div className="p-3 bg-muted rounded-lg">
+                                <p className="text-sm font-medium mb-1">Lead Details:</p>
+                                <p className="text-sm text-muted-foreground">
+                                  <strong>Client:</strong> {record.clients?.full_name || 'Unknown'} 
+                                  {record.clients?.company_name && ` (${record.clients.company_name})`}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  <strong>Sales Rep:</strong> {record.profiles?.full_name || 'Unknown'}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  <strong>Score:</strong> {record.score}/100 | <strong>Status:</strong> {record.qualification_status?.toUpperCase() || 'N/A'}
                                 </p>
                               </div>
                               <div>
-                                <label className="text-sm font-medium mb-2 block">Follow-up Message</label>
+                                <label className="text-sm font-medium mb-2 block">Urgent Follow-up Message</label>
                                 <Textarea
-                                  placeholder="Please follow up with this hot lead immediately. The client showed strong interest and is ready to move forward..."
+                                  placeholder="URGENT: This lead requires immediate attention. Please contact within 2 hours and update the status. High priority follow-up needed based on qualification score and client interest level."
                                   value={followUpMessage}
                                   onChange={(e) => setFollowUpMessage(e.target.value)}
                                   rows={4}
+                                  className="min-h-[100px]"
                                 />
                               </div>
                               <div className="flex gap-2 justify-end">
@@ -907,7 +974,7 @@ const CallHistory = () => {
                                 </Button>
                                 <Button 
                                   onClick={() => sendFollowUpRequest(record)}
-                                  disabled={sendingFollowUp}
+                                  disabled={sendingFollowUp || !followUpMessage.trim()}
                                   className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white"
                                 >
                                   {sendingFollowUp ? (
@@ -918,7 +985,7 @@ const CallHistory = () => {
                                   ) : (
                                     <>
                                       <Send className="h-4 w-4 mr-2" />
-                                      Send Request
+                                      Send Urgent Request
                                     </>
                                   )}
                                 </Button>

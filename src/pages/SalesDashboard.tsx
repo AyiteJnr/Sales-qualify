@@ -134,9 +134,13 @@ const SalesDashboard = () => {
         new Date(call.call_timestamp) >= thisWeek
       ).length || 0;
 
-      const hotDeals = callsData?.filter(call => 
-        call.qualification_status === 'hot' || call.is_hot_deal
-      ).length || 0;
+      const hotDeals = callsData?.filter(call => {
+        const isHot = call.qualification_status === 'hot' || call.is_hot_deal === true;
+        console.log('Hot deal check for call:', { id: call.id, status: call.qualification_status, isHotDeal: call.is_hot_deal, result: isHot });
+        return isHot;
+      }).length || 0;
+      
+      console.log('Total hot deals found:', hotDeals);
 
       const avgScore = callsData && callsData.length > 0
         ? callsData.reduce((sum, call) => sum + (call.score || 0), 0) / callsData.length
@@ -160,7 +164,13 @@ const SalesDashboard = () => {
       });
 
       setMyLeads(leadsData || []);
-      setRecentCalls(callsData?.slice(0, 5) || []);
+      // Process recent calls to ensure proper hot deal flags
+      const processedCalls = (callsData || []).map(call => ({
+        ...call,
+        client_name: call.clients?.full_name || 'Unknown Client'
+      }));
+      
+      setRecentCalls(processedCalls.slice(0, 10) || []);
 
     } catch (error) {
       console.error('Error fetching dashboard data:', error);

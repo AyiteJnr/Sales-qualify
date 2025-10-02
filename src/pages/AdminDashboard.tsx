@@ -89,6 +89,35 @@ interface CallRecord {
   } | null;
 }
 
+interface User {
+  id: string;
+  full_name: string;
+  email: string;
+  role: string;
+  phone?: string;
+}
+
+interface CsvLead {
+  id: string;
+  name: string;
+  email: string;
+  company: string;
+  phone: string;
+  location: string;
+  notes: string;
+  assignedRepId: string;
+  selected: boolean;
+  company_name?: string;
+  full_name?: string;
+}
+
+interface CsvSalesRep {
+  id: string;
+  full_name: string;
+  email: string;
+  role: string;
+}
+
 const AdminDashboard = () => {
   const { user, profile, signOut } = useAuth();
   const { toast } = useToast();
@@ -106,13 +135,13 @@ const AdminDashboard = () => {
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [showUsersModal, setShowUsersModal] = useState(false);
-  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
-  const [csvLeads, setCsvLeads] = useState<any[]>([]);
+  const [csvLeads, setCsvLeads] = useState<CsvLead[]>([]);
   const [csvPreview, setCsvPreview] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [csvImporting, setCsvImporting] = useState(false);
-  const [csvSalesReps, setCsvSalesReps] = useState<any[]>([]);
+  const [csvSalesReps, setCsvSalesReps] = useState<CsvSalesRep[]>([]);
   const [csvDefaultRep, setCsvDefaultRep] = useState<string>('unassigned');
   const [callRecords, setCallRecords] = useState<CallRecord[]>([]);
   const [sendingFollowUp, setSendingFollowUp] = useState(false);
@@ -162,21 +191,26 @@ const AdminDashboard = () => {
       setLoading(true);
       console.log('Fetching dashboard data at:', new Date().toISOString());
       
-      // Fetch leads count
-      const { count: leadsCount } = await supabase
-        .from('clients')
-        .select('*', { count: 'exact', head: true });
+      // Use the new dashboard stats function for better performance
+      const { data: statsData, error: statsError } = await supabase
+        .rpc('get_dashboard_stats', { p_user_id: user?.id });
 
-      // Fetch calls count
-      const { count: callsCount } = await supabase
-        .from('call_records')
-        .select('*', { count: 'exact', head: true });
+      if (statsError) {
+        console.warn('Stats function error, falling back to individual queries:', statsError);
+        
+        // Fallback to individual queries
+        const { count: leadsCount } = await supabase
+          .from('clients')
+          .select('*', { count: 'exact', head: true });
 
-      // Fetch completed calls
-      const { count: completedCallsCount } = await supabase
-        .from('call_records')
-        .select('*', { count: 'exact', head: true })
-        .eq('qualification_status', 'hot');
+        const { count: callsCount } = await supabase
+          .from('call_records')
+          .select('*', { count: 'exact', head: true });
+
+        const { count: completedCallsCount } = await supabase
+          .from('call_records')
+          .select('*', { count: 'exact', head: true })
+          .eq('qualification_status', 'hot');
 
       // Fetch rep performance
       const { data: repsData } = await supabase
@@ -240,7 +274,9 @@ const AdminDashboard = () => {
           clients (
             full_name,
             company_name,
-            deal_value
+            deal_value,
+            email,
+            phone
           ),
           profiles!rep_id (
             full_name,
@@ -251,11 +287,19 @@ const AdminDashboard = () => {
 
       if (callRecordsError) {
         console.error('Error fetching call records:', callRecordsError);
-        throw callRecordsError;
+        // Don't throw error, just log and continue with empty records
+        console.warn('Continuing with empty call records due to error');
+        setCallRecords([]);
+      } else {
+        console.log('Fetched call records:', detailedCallRecords?.length || 0);
+        // Ensure hot deal flags are properly set
+        const processedRecords = (detailedCallRecords || []).map(record => ({
+          ...record,
+          is_hot_deal: record.is_hot_deal || record.qualification_status === 'hot' || record.score >= 80,
+          follow_up_required: record.follow_up_required || record.qualification_status === 'hot' || record.score >= 70
+        }));
+        setCallRecords(processedRecords as unknown as CallRecord[]);
       }
-
-      console.log('Fetched call records:', detailedCallRecords?.length || 0);
-      setCallRecords((detailedCallRecords as unknown as CallRecord[]) || []);
 
       const topPerformerObj = performanceData.length > 0
         ? performanceData.reduce((prev, current) =>
@@ -263,15 +307,28 @@ const AdminDashboard = () => {
           )
         : null;
 
-      const newStats = {
-        totalLeads: leadsCount || 0,
-        totalCalls: callsCount || 0,
-        completedCalls: completedCallsCount || 0,
-        conversionRate: callsCount ? ((completedCallsCount || 0) / callsCount) * 100 : 0,
-        avgCallDuration: 0, // Would need to calculate from actual data
-        topPerformer: topPerformerObj ? `${topPerformerObj.name} (${topPerformerObj.conversionRate.toFixed(1)}%)` : 'N/A',
-        recentActivity: activityData.length
-      };
+        // Continue with existing logic for fallback case
+        const newStats = {
+          totalLeads: leadsCount || 0,
+          totalCalls: callsCount || 0,
+          completedCalls: completedCallsCount || 0,
+          conversionRate: callsCount ? ((completedCallsCount || 0) / callsCount) * 100 : 0,
+          avgCallDuration: 0,
+          topPerformer: topPerformerObj ? `${topPerformerObj.name} (${topPerformerObj.conversionRate.toFixed(1)}%)` : 'N/A',
+          recentActivity: activityData.length
+        };
+      } else {
+        // Use stats from RPC function if available
+        const newStats = {
+          totalLeads: statsData.total_leads || 0,
+          totalCalls: statsData.total_calls || 0,
+          completedCalls: statsData.hot_deals || 0,
+          conversionRate: statsData.conversion_rate || 0,
+          avgCallDuration: 0,
+          topPerformer: topPerformerObj ? `${topPerformerObj.name} (${topPerformerObj.conversionRate.toFixed(1)}%)` : 'N/A',
+          recentActivity: activityData.length
+        };
+      }
 
       setStats(newStats);
       setRepPerformance(performanceData);
@@ -279,16 +336,18 @@ const AdminDashboard = () => {
       setLastRefresh(new Date());
 
       if (showToast) {
+        const hotDealsCount = callRecords.filter(r => r.is_hot_deal || r.qualification_status === 'hot').length;
         toast({
           title: "✅ Dashboard Updated",
-          description: `Found ${detailedCallRecords?.filter(r => r.qualification_status === 'hot' || (r as any).is_hot_deal).length || 0} hot deals`,
+          description: `Found ${hotDealsCount} hot deals. Real-time data refreshed.`,
         });
       }
 
       console.log('Dashboard data updated successfully:', {
-        hotDeals: detailedCallRecords?.filter(r => r.qualification_status === 'hot' || (r as any).is_hot_deal).length || 0,
-        totalCalls: callsCount,
-        totalLeads: leadsCount
+        hotDeals: callRecords.filter(r => r.is_hot_deal || r.qualification_status === 'hot').length,
+        totalCalls: newStats.totalCalls,
+        totalLeads: newStats.totalLeads,
+        statsSource: statsData ? 'rpc_function' : 'individual_queries'
       });
 
     } catch (error) {

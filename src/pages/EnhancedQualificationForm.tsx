@@ -265,12 +265,15 @@ const EnhancedQualificationForm = () => {
         transcript_text: transcript,
         audio_url: audioUrl,
         qualification_status: qualificationStatus,
-        is_hot_deal: calculatedScore >= 80,
-        follow_up_required: calculatedScore >= 70,
-        comments: `Qualification completed with score: ${calculatedScore}% on ${new Date().toLocaleDateString()}`,
-        next_action: calculatedScore >= 70 ? 'Schedule demo meeting' : 'Follow up in 1 week',
-        tags: calculatedScore >= 80 ? ['hot-lead', 'high-priority'] : calculatedScore >= 60 ? ['warm-lead'] : ['cold-lead'],
-        admin_notes: `Call completed by ${profile?.full_name || 'Sales Rep'}`
+        is_hot_deal: calculatedScore >= 80 || qualificationStatus === 'hot',
+        follow_up_required: calculatedScore >= 70 || qualificationStatus === 'hot',
+        call_duration: transcript ? Math.max(30, Math.min(transcript.length / 10, 600)) : 0, // Estimate duration
+        comments: `Qualification completed with score: ${calculatedScore}% on ${new Date().toLocaleDateString()}. Status: ${qualificationStatus.toUpperCase()}.`,
+        next_action: calculatedScore >= 80 ? 'URGENT: Schedule demo meeting within 24 hours' : 
+                    calculatedScore >= 70 ? 'Schedule demo meeting this week' : 
+                    calculatedScore >= 60 ? 'Follow up call next week' : 'Archive lead',
+        admin_notes: `Call completed by ${profile?.full_name || 'Sales Rep'} at ${new Date().toLocaleString()}. ${calculatedScore >= 80 ? 'HIGH PRIORITY HOT LEAD!' : ''}`,
+        call_outcome: calculatedScore >= 80 ? 'hot_lead' : calculatedScore >= 60 ? 'qualified' : 'not_qualified'
       };
 
       let result;
