@@ -778,15 +778,45 @@ const AdminDashboard = () => {
 
           {/* Main Content */}
           <div>
+            {/* Header with Messages Button */}
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+                <p className="text-gray-600">Manage your sales team and track performance</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    const messagesTab = document.querySelector('[value="messages"]') as HTMLElement;
+                    if (messagesTab) messagesTab.click();
+                  }}
+                  className="bg-blue-500 hover:bg-blue-600 text-white border-blue-500"
+                >
+                  💬 Team Messages
+                  {inbox.length > 0 && (
+                    <Badge variant="destructive" className="ml-2">
+                      {inbox.length}
+                    </Badge>
+                  )}
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => navigate('/call-history')}
+                  className="flex items-center gap-2"
+                >
+                  <Phone className="h-4 w-4" />
+                  View All Analytics
+                </Button>
+              </div>
+            </div>
+
             <Tabs defaultValue="overview" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-7">
+              <TabsList className="grid w-full grid-cols-6">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="hot-deals">Hot Deals</TabsTrigger>
                 <TabsTrigger value="performance">Performance</TabsTrigger>
                 <TabsTrigger value="leads">Lead Management</TabsTrigger>
-                <TabsTrigger value="messages" className="bg-blue-500 text-white data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-                  💬 Team Messages
-                </TabsTrigger>
                 <TabsTrigger value="integrations">Integrations</TabsTrigger>
                 <TabsTrigger value="settings">Settings</TabsTrigger>
               </TabsList>
@@ -1123,40 +1153,86 @@ const AdminDashboard = () => {
                 </CardContent>
               </Card>
 
-                  {/* Quick Actions */}
+                  {/* Analytics & Actions */}
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
-                        <Activity className="h-5 w-5" />
-                        Quick Actions
+                        <BarChart3 className="h-5 w-5" />
+                        Analytics & Actions
                       </CardTitle>
+                      <CardDescription>
+                        Comprehensive analytics and quick actions
+                      </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Button 
-                          variant="outline" 
-                          className="h-16 flex-col gap-2"
-                          onClick={() => navigate('/call-history')}
-                        >
-                          <FileText className="h-5 w-5" />
-                          Full Call History
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          className="h-16 flex-col gap-2"
-                          onClick={() => navigate('/leads-management')}
-                        >
-                          <Users className="h-5 w-5" />
-                          Manage All Leads
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          className="h-16 flex-col gap-2"
-                          onClick={() => navigate('/admin')}
-                        >
-                          <Settings className="h-5 w-5" />
-                          Admin Settings
-                        </Button>
+                      {/* Analytics Buttons */}
+                      <div className="mb-6">
+                        <h4 className="font-medium mb-3 text-gray-700">Deal Analytics</h4>
+                        <div className="grid grid-cols-2 gap-3">
+                          <Button 
+                            variant="outline" 
+                            className="h-12 flex items-center gap-2 justify-start"
+                            onClick={() => navigate('/call-history?filter=hot')}
+                          >
+                            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                            Hot Deals Analytics
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            className="h-12 flex items-center gap-2 justify-start"
+                            onClick={() => navigate('/call-history?filter=warm')}
+                          >
+                            <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                            Warm Deals Analytics
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            className="h-12 flex items-center gap-2 justify-start"
+                            onClick={() => navigate('/call-history?filter=cold')}
+                          >
+                            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                            Cold Deals Analytics
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            className="h-12 flex items-center gap-2 justify-start"
+                            onClick={() => navigate('/call-history')}
+                          >
+                            <BarChart3 className="h-4 w-4" />
+                            All Analytics
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      {/* Quick Actions */}
+                      <div className="border-t pt-4">
+                        <h4 className="font-medium mb-3 text-gray-700">Quick Actions</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <Button 
+                            variant="outline" 
+                            className="h-16 flex-col gap-2"
+                            onClick={() => navigate('/call-history')}
+                          >
+                            <FileText className="h-5 w-5" />
+                            Full Call History
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            className="h-16 flex-col gap-2"
+                            onClick={() => navigate('/leads-management')}
+                          >
+                            <Users className="h-5 w-5" />
+                            Manage All Leads
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            className="h-16 flex-col gap-2"
+                            onClick={() => navigate('/admin')}
+                          >
+                            <Settings className="h-5 w-5" />
+                            Admin Settings
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

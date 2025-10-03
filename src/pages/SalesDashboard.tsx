@@ -405,6 +405,42 @@ const SalesDashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <div className="container mx-auto px-4 py-8">
+        {/* Header with Messages Button */}
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Sales Dashboard</h1>
+            <p className="text-gray-600">Track your leads, calls, and performance</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="outline" 
+              className="bg-blue-500 hover:bg-blue-600 text-white border-blue-500"
+              onClick={() => {
+                // Scroll to messages section
+                const messagesSection = document.querySelector('[data-messages-section]');
+                if (messagesSection) {
+                  messagesSection.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
+            >
+              💬 Team Messages
+              {inbox.length > 0 && (
+                <Badge variant="destructive" className="ml-2">
+                  {inbox.length}
+                </Badge>
+              )}
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => navigate('/call-history')}
+              className="flex items-center gap-2"
+            >
+              <BarChart3 className="h-4 w-4" />
+              View Analytics
+            </Button>
+          </div>
+        </div>
+
         {/* Header */}
         <motion.div 
           className="flex items-center justify-between mb-8"
@@ -511,6 +547,57 @@ const SalesDashboard = () => {
                   <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
                     <Star className="h-6 w-6 text-red-600" />
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Analytics Section */}
+          <motion.div variants={itemVariants} className="mb-8">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  Analytics & Insights
+                </CardTitle>
+                <CardDescription>
+                  Comprehensive analytics for all your deals and performance
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <Button 
+                    variant="outline" 
+                    className="h-16 flex-col gap-2 border-red-200 text-red-600 hover:bg-red-50"
+                    onClick={() => navigate('/call-history?filter=hot')}
+                  >
+                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    Hot Deals Analytics
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="h-16 flex-col gap-2 border-yellow-200 text-yellow-600 hover:bg-yellow-50"
+                    onClick={() => navigate('/call-history?filter=warm')}
+                  >
+                    <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                    Warm Deals Analytics
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="h-16 flex-col gap-2 border-blue-200 text-blue-600 hover:bg-blue-50"
+                    onClick={() => navigate('/call-history?filter=cold')}
+                  >
+                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                    Cold Deals Analytics
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="h-16 flex-col gap-2"
+                    onClick={() => navigate('/call-history')}
+                  >
+                    <BarChart3 className="h-5 w-5" />
+                    All Analytics
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -795,7 +882,7 @@ const SalesDashboard = () => {
           )}
 
           {/* Messages */}
-          <motion.div variants={itemVariants} className="mt-8">
+          <motion.div variants={itemVariants} className="mt-8" data-messages-section>
             <Card className="border-2 border-blue-200 bg-blue-50">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-blue-700">
