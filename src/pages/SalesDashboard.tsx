@@ -78,6 +78,10 @@ const SalesDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [initialLoaded, setInitialLoaded] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [inbox, setInbox] = useState<Array<{ id: string; body: string; sender_id: string; recipient_id: string; created_at: string; sender_name?: string }>>([]);
+  const [admins, setAdmins] = useState<Array<{ id: string; full_name: string }>>([]);
+  const [selectedAdmin, setSelectedAdmin] = useState<string>('');
+  const [newMessage, setNewMessage] = useState('');
 
   useEffect(() => {
     if (profile && profile.role !== 'rep') {
@@ -102,6 +106,48 @@ const SalesDashboard = () => {
       try { supabase.removeChannel(channel); } catch {}
     };
   }, [profile, user?.id]);
+
+  // Load inbox and admins, subscribe to messages
+  useEffect(() => {
+    const loadAdmins = async () => {
+      const { data } = await supabase.from('profiles').select('id, full_name').eq('role', 'admin');
+      setAdmins(data || []);
+      if ((data || []).length > 0 && !selectedAdmin) setSelectedAdmin((data || [])[0].id);
+    };
+    const loadInbox = async () => {
+      if (!user?.id) return;
+      const { data } = await supabase
+        .from('messages')
+        .select('id, body, sender_id, recipient_id, created_at, profiles:sender_id(full_name)')
+        .or(`recipient_id.eq.${user.id},sender_id.eq.${user.id})`)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      setInbox((data || []).map((m: any) => ({
+        id: m.id,
+        body: m.body,
+        sender_id: m.sender_id,
+        recipient_id: m.recipient_id,
+        created_at: m.created_at,
+        sender_name: m.profiles?.full_name
+      })));
+    };
+    loadAdmins();
+    loadInbox();
+    const ch = supabase.channel('realtime-messages-rep')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, loadInbox)
+      .subscribe();
+    return () => { try { supabase.removeChannel(ch); } catch {} };
+  }, [user?.id]);
+
+  const sendMessageToAdmin = async () => {
+    if (!selectedAdmin || !newMessage.trim() || !user?.id) return;
+    await supabase.from('messages').insert({
+      sender_id: user.id,
+      recipient_id: selectedAdmin,
+      body: newMessage.trim()
+    });
+    setNewMessage('');
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -644,6 +690,52 @@ const SalesDashboard = () => {
               </Card>
             </motion.div>
           )}
+
+          {/* Messages with Admin */}
+          <motion.div variants={itemVariants} className="mt-8">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  Messages
+                </CardTitle>
+                <CardDescription>
+                  Communicate with your admin for follow-ups and support
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3 max-h-60 overflow-auto mb-4">
+                  {inbox.map(msg => (
+                    <div key={msg.id} className="text-sm">
+                      <span className="font-medium">{msg.sender_name || 'User'}</span>: {msg.body}
+                      <span className="text-xs text-gray-500 ml-2">{new Date(msg.created_at).toLocaleString()}</span>
+                    </div>
+                  ))}
+                  {inbox.length === 0 && (
+                    <div className="text-sm text-gray-600">No messages yet.</div>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <select
+                    className="border rounded h-10 px-2"
+                    value={selectedAdmin}
+                    onChange={(e) => setSelectedAdmin(e.target.value)}
+                  >
+                    {admins.map(a => (
+                      <option key={a.id} value={a.id}>{a.full_name}</option>
+                    ))}
+                  </select>
+                  <input
+                    className="border rounded h-10 px-3 flex-1"
+                    placeholder="Type a message to admin"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                  />
+                  <Button onClick={sendMessageToAdmin} disabled={!selectedAdmin || !newMessage.trim()}>Send</Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
         </motion.div>
       </div>
     </div>
