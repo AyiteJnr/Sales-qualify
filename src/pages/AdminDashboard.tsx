@@ -158,7 +158,7 @@ const AdminDashboard = () => {
     const channel = supabase
       .channel('realtime-call-records-admin')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'call_records' }, () => {
-        // Light refresh without full-page spinner
+        // Background refresh without UI disruption
         fetchDashboardData(false);
       })
       .subscribe();
@@ -187,7 +187,7 @@ const AdminDashboard = () => {
         sender_id: m.sender_id,
         recipient_id: m.recipient_id,
         created_at: m.created_at,
-        sender_name: m.profiles?.full_name
+        sender_name: m.profiles?.full_name || 'Unknown User'
       })));
     };
     loadInbox();
@@ -197,20 +197,48 @@ const AdminDashboard = () => {
     return () => { try { supabase.removeChannel(ch); } catch {} };
   }, [profile?.id, profile?.role]);
 
-  const sendMessageToRep = async () => {
-    if (!selectedRepForMsg || !newMessage.trim() || !profile?.id) return;
-    const { error } = await supabase.from('messages').insert({
-      sender_id: profile.id,
-      recipient_id: selectedRepForMsg,
-      body: newMessage.trim()
-    });
-    if (error) {
-      console.error('Send message error (admin):', error);
-      toast({ title: 'Message failed', description: error.message || 'Unable to send message', variant: 'destructive' });
+  const sendMessage = async () => {
+    if (!selectedRepForMsg || !newMessage.trim() || !profile?.id) {
+      toast({ title: "Missing information", description: "Please select a recipient and enter a message.", variant: "destructive" });
       return;
     }
-    setNewMessage('');
-    toast({ title: 'Message sent' });
+    try {
+      const { error } = await supabase.from('messages').insert({
+        sender_id: profile.id,
+        recipient_id: selectedRepForMsg,
+        body: newMessage.trim()
+      });
+      if (error) throw error;
+      setNewMessage('');
+      setSelectedRepForMsg('');
+      toast({
+        title: "Message Sent",
+        description: "Your message has been sent successfully.",
+      });
+      // Refresh inbox to show sent message
+      const loadInbox = async () => {
+        const { data, error } = await supabase
+          .from('messages')
+          .select('id, body, sender_id, recipient_id, created_at, profiles:sender_id(full_name)')
+          .or(`recipient_id.eq.${profile.id},sender_id.eq.${profile.id}`)
+          .order('created_at', { ascending: false })
+          .limit(20);
+        if (!error && data) {
+          setInbox((data || []).map((m: any) => ({
+            id: m.id,
+            body: m.body,
+            sender_id: m.sender_id,
+            recipient_id: m.recipient_id,
+            created_at: m.created_at,
+            sender_name: m.profiles?.full_name || 'Unknown User'
+          })));
+        }
+      };
+      loadInbox();
+    } catch (error) {
+      console.error('Send message error (admin):', error);
+      toast({ title: 'Message failed', description: 'Unable to send message', variant: 'destructive' });
+    }
   };
 
   useEffect(() => {
@@ -231,13 +259,13 @@ const AdminDashboard = () => {
     }
   }, [profile, navigate]);
 
-  // Auto-refresh effect for real-time updates
+  // Auto-refresh effect for real-time updates (background only)
   useEffect(() => {
     if (!autoRefresh || profile?.role !== 'admin') return;
     
     const interval = setInterval(() => {
       console.log('Auto-refreshing dashboard data...');
-      fetchDashboardData();
+      fetchDashboardData(false); // Never show loading spinner
       setLastRefresh(new Date());
     }, 30000); // Refresh every 30 seconds
 
@@ -252,7 +280,9 @@ const AdminDashboard = () => {
           description: "Updating dashboard with latest information...",
         });
       }
-      if (!initialLoaded) setLoading(true);
+      if (!initialLoaded) {
+        setLoading(true);
+      }
       console.log('Fetching dashboard data at:', new Date().toISOString());
       
       // Use basic queries for reliability
@@ -413,7 +443,9 @@ const AdminDashboard = () => {
         variant: "destructive"
       });
     } finally {
-      if (!initialLoaded) setLoading(false);
+      if (!initialLoaded) {
+        setLoading(false);
+      }
     }
   };
 
@@ -1114,7 +1146,7 @@ const AdminDashboard = () => {
                             onChange={(e) => setNewMessage(e.target.value)}
                             className="min-h-[44px]"
                           />
-                          <Button onClick={sendMessageToRep} disabled={!selectedRepForMsg || !newMessage.trim()}>Send</Button>
+                          <Button onClick={sendMessage} disabled={!selectedRepForMsg || !newMessage.trim()}>Send</Button>
                         </div>
                       </div>
                     </div>

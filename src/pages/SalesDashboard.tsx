@@ -142,7 +142,7 @@ const SalesDashboard = () => {
         sender_id: m.sender_id,
         recipient_id: m.recipient_id,
         created_at: m.created_at,
-        sender_name: m.profiles?.full_name
+        sender_name: m.profiles?.full_name || 'Unknown User'
       })));
     };
     loadRecipients();
@@ -154,17 +154,53 @@ const SalesDashboard = () => {
   }, [user?.id]);
 
   const sendMessage = async () => {
-    if (!selectedRecipient || !newMessage.trim() || !user?.id) return;
-    const { error } = await supabase.from('messages').insert({
-      sender_id: user.id,
-      recipient_id: selectedRecipient,
-      body: newMessage.trim()
-    });
-    if (error) {
-      console.error('Send message error (rep):', error);
+    if (!selectedRecipient || !newMessage.trim() || !user?.id) {
+      console.log('Missing information for message:', { selectedRecipient, newMessage: newMessage.trim(), userId: user?.id });
       return;
     }
-    setNewMessage('');
+    try {
+      const { error } = await supabase.from('messages').insert({
+        sender_id: user.id,
+        recipient_id: selectedRecipient,
+        body: newMessage.trim()
+      });
+      if (error) throw error;
+      setNewMessage('');
+      // Show success feedback
+      const recipientName = recipients.find(r => r.id === selectedRecipient)?.full_name || 'recipient';
+      console.log(`Message sent to ${recipientName}`);
+      // Refresh inbox to show sent message
+      const loadInbox = async () => {
+        if (!user?.id) return;
+        let { data, error } = await supabase
+          .from('messages')
+          .select('id, body, sender_id, recipient_id, created_at, profiles:sender_id(full_name)')
+          .or(`recipient_id.eq.${user.id},sender_id.eq.${user.id}`)
+          .order('created_at', { ascending: false })
+          .limit(20);
+        if (error) {
+          console.error('Inbox load error (rep) with join, retrying simple:', error);
+          const fallback = await supabase
+            .from('messages')
+            .select('id, body, sender_id, recipient_id, created_at')
+            .or(`recipient_id.eq.${user.id},sender_id.eq.${user.id}`)
+            .order('created_at', { ascending: false })
+            .limit(20);
+          data = fallback.data;
+        }
+        setInbox((data || []).map((m: any) => ({
+          id: m.id,
+          body: m.body,
+          sender_id: m.sender_id,
+          recipient_id: m.recipient_id,
+          created_at: m.created_at,
+          sender_name: m.profiles?.full_name || 'Unknown User'
+        })));
+      };
+      loadInbox();
+    } catch (error) {
+      console.error('Send message error (rep):', error);
+    }
   };
 
   const fetchDashboardData = async () => {
