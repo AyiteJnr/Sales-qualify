@@ -119,15 +119,21 @@ const SalesDashboard = () => {
     };
     const loadInbox = async () => {
       if (!user?.id) return;
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('messages')
         .select('id, body, sender_id, recipient_id, created_at, profiles:sender_id(full_name)')
         .or(`recipient_id.eq.${user.id},sender_id.eq.${user.id}`)
         .order('created_at', { ascending: false })
         .limit(20);
       if (error) {
-        console.error('Inbox load error (rep):', error);
-        return;
+        console.error('Inbox load error (rep) with join, retrying simple:', error);
+        const fallback = await supabase
+          .from('messages')
+          .select('id, body, sender_id, recipient_id, created_at')
+          .or(`recipient_id.eq.${user.id},sender_id.eq.${user.id}`)
+          .order('created_at', { ascending: false })
+          .limit(20);
+        data = fallback.data;
       }
       setInbox((data || []).map((m: any) => ({
         id: m.id,
@@ -141,7 +147,7 @@ const SalesDashboard = () => {
     loadAdmins();
     loadInbox();
     const ch = supabase.channel('realtime-messages-rep')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, loadInbox)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `recipient_id=eq.${user?.id}` }, loadInbox)
       .subscribe();
     return () => { try { supabase.removeChannel(ch); } catch {} };
   }, [user?.id]);
