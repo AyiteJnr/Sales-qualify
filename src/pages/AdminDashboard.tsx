@@ -254,6 +254,7 @@ const AdminDashboard = () => {
       console.log('User is admin, fetching dashboard data');
       fetchDashboardData();
       fetchCsvSalesReps();
+      fetchAllUsers(); // Load all users for messaging
     } else {
       console.log('Profile not loaded yet or user not admin');
     }
@@ -280,6 +281,7 @@ const AdminDashboard = () => {
           description: "Updating dashboard with latest information...",
         });
       }
+      // Only show loading spinner on very first load, never on refreshes
       if (!initialLoaded) {
         setLoading(true);
       }
@@ -1135,8 +1137,10 @@ const AdminDashboard = () => {
                               <SelectValue placeholder="Select recipient" />
                             </SelectTrigger>
                             <SelectContent>
-                              {allUsers.map(u => (
-                                <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>
+                              {allUsers.filter(user => user.id !== profile?.id).map(user => (
+                                <SelectItem key={user.id} value={user.id}>
+                                  {user.full_name} ({user.role})
+                                </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>

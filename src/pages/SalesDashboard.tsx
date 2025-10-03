@@ -25,6 +25,8 @@ import {
   FileText,
   Star
 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 
 interface SalesStats {
   myLeads: number;
@@ -205,6 +207,7 @@ const SalesDashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
+      // Only show loading spinner on very first load, never on refreshes
       if (!initialLoaded) setLoading(true);
       
       if (!user) return;
@@ -816,20 +819,21 @@ const SalesDashboard = () => {
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <select
-                    className="border rounded h-10 px-2"
-                    value={selectedRecipient}
-                    onChange={(e) => setSelectedRecipient(e.target.value)}
-                  >
-                    {recipients.map(r => (
-                      <option key={r.id} value={r.id}>{r.full_name}</option>
-                    ))}
-                  </select>
-                  <input
-                    className="border rounded h-10 px-3 flex-1"
+                  <Select value={selectedRecipient} onValueChange={setSelectedRecipient}>
+                    <SelectTrigger className="w-64">
+                      <SelectValue placeholder="Select recipient" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {recipients.map(r => (
+                        <SelectItem key={r.id} value={r.id}>{r.full_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Textarea
                     placeholder="Type a message"
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
+                    className="min-h-[44px] flex-1"
                   />
                   <Button onClick={sendMessage} disabled={!selectedRecipient || !newMessage.trim()}>Send</Button>
                 </div>
