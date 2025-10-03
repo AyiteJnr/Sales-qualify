@@ -796,13 +796,18 @@ const SalesDashboard = () => {
 
           {/* Messages */}
           <motion.div variants={itemVariants} className="mt-8">
-            <Card>
+            <Card className="border-2 border-blue-200 bg-blue-50">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-blue-700">
                   <Clock className="h-5 w-5" />
-                  Messages
+                  💬 Team Messages
+                  {inbox.length > 0 && (
+                    <Badge variant="destructive" className="ml-2">
+                      {inbox.length} new
+                    </Badge>
+                  )}
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-blue-600">
                   Communicate with your team for follow-ups and support
                 </CardDescription>
               </CardHeader>

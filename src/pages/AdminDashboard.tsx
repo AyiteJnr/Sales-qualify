@@ -260,18 +260,18 @@ const AdminDashboard = () => {
     }
   }, [profile, navigate]);
 
-  // Auto-refresh effect for real-time updates (background only)
-  useEffect(() => {
-    if (!autoRefresh || profile?.role !== 'admin') return;
-    
-    const interval = setInterval(() => {
-      console.log('Auto-refreshing dashboard data...');
-      fetchDashboardData(false); // Never show loading spinner
-      setLastRefresh(new Date());
-    }, 30000); // Refresh every 30 seconds
+  // Auto-refresh deactivated - only manual refresh available
+  // useEffect(() => {
+  //   if (!autoRefresh || profile?.role !== 'admin') return;
+  //   
+  //   const interval = setInterval(() => {
+  //     console.log('Auto-refreshing dashboard data...');
+  //     fetchDashboardData(false); // Never show loading spinner
+  //     setLastRefresh(new Date());
+  //   }, 30000); // Refresh every 30 seconds
 
-    return () => clearInterval(interval);
-  }, [autoRefresh, profile]);
+  //   return () => clearInterval(interval);
+  // }, [autoRefresh, profile]);
 
   const fetchDashboardData = async (showToast = false) => {
     try {
@@ -779,11 +779,14 @@ const AdminDashboard = () => {
           {/* Main Content */}
           <div>
             <Tabs defaultValue="overview" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-6">
+              <TabsList className="grid w-full grid-cols-7">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="hot-deals">Hot Deals</TabsTrigger>
                 <TabsTrigger value="performance">Performance</TabsTrigger>
                 <TabsTrigger value="leads">Lead Management</TabsTrigger>
+                <TabsTrigger value="messages" className="bg-blue-500 text-white data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+                  💬 Team Messages
+                </TabsTrigger>
                 <TabsTrigger value="integrations">Integrations</TabsTrigger>
                 <TabsTrigger value="settings">Settings</TabsTrigger>
               </TabsList>
@@ -1115,44 +1118,6 @@ const AdminDashboard = () => {
                               </div>
                             </div>
                           ))}
-                      {/* Admin Inbox & Messaging */}
-                      <div className="p-4 border rounded-lg">
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="font-semibold">Team Messages</h4>
-                        </div>
-                        <div className="space-y-2 max-h-56 overflow-auto mb-3">
-                          {inbox.map(msg => (
-                            <div key={msg.id} className="text-sm">
-                              <span className="font-medium">{msg.sender_name || 'User'}</span>: {msg.body}
-                              <span className="text-xs text-muted-foreground ml-2">{new Date(msg.created_at).toLocaleString()}</span>
-                            </div>
-                          ))}
-                          {inbox.length === 0 && (
-                            <div className="text-sm text-muted-foreground">No messages yet.</div>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Select value={selectedRepForMsg} onValueChange={setSelectedRepForMsg}>
-                            <SelectTrigger className="w-64">
-                              <SelectValue placeholder="Select recipient" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {allUsers.filter(user => user.id !== profile?.id).map(user => (
-                                <SelectItem key={user.id} value={user.id}>
-                                  {user.full_name} ({user.role})
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Textarea
-                            placeholder="Type a message to the selected rep"
-                            value={newMessage}
-                            onChange={(e) => setNewMessage(e.target.value)}
-                            className="min-h-[44px]"
-                          />
-                          <Button onClick={sendMessage} disabled={!selectedRepForMsg || !newMessage.trim()}>Send</Button>
-                        </div>
-                      </div>
                     </div>
                   )}
                 </CardContent>
@@ -1471,6 +1436,71 @@ const AdminDashboard = () => {
                     fetchDashboardData(); // Refresh dashboard data
                   }}
                 />
+              </TabsContent>
+
+              <TabsContent value="messages" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Phone className="h-5 w-5" />
+                      Team Messages
+                    </CardTitle>
+                    <CardDescription>
+                      Send messages to team members and view conversation history
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Message History */}
+                    <div className="border rounded-lg p-4">
+                      <h4 className="font-semibold mb-3">Recent Messages</h4>
+                      <div className="space-y-2 max-h-64 overflow-auto">
+                        {inbox.map(msg => (
+                          <div key={msg.id} className="text-sm p-2 bg-gray-50 rounded">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <span className="font-medium text-blue-600">{msg.sender_name || 'User'}</span>
+                                <span className="text-gray-500 ml-2">to {msg.recipient_id === profile?.id ? 'You' : 'Team'}</span>
+                              </div>
+                              <span className="text-xs text-gray-400">{new Date(msg.created_at).toLocaleString()}</span>
+                            </div>
+                            <div className="mt-1">{msg.body}</div>
+                          </div>
+                        ))}
+                        {inbox.length === 0 && (
+                          <div className="text-sm text-gray-500 text-center py-4">No messages yet. Start a conversation!</div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Send Message */}
+                    <div className="border rounded-lg p-4">
+                      <h4 className="font-semibold mb-3">Send Message</h4>
+                      <div className="flex items-center gap-2">
+                        <Select value={selectedRepForMsg} onValueChange={setSelectedRepForMsg}>
+                          <SelectTrigger className="w-64">
+                            <SelectValue placeholder="Select recipient" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {allUsers.filter(user => user.id !== profile?.id).map(user => (
+                              <SelectItem key={user.id} value={user.id}>
+                                {user.full_name} ({user.role})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Textarea
+                          placeholder="Type a message to the selected team member"
+                          value={newMessage}
+                          onChange={(e) => setNewMessage(e.target.value)}
+                          className="min-h-[44px] flex-1"
+                        />
+                        <Button onClick={sendMessage} disabled={!selectedRepForMsg || !newMessage.trim()}>
+                          Send
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </TabsContent>
 
               <TabsContent value="settings" className="space-y-6">
