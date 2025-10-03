@@ -110,18 +110,25 @@ const SalesDashboard = () => {
   // Load inbox and admins, subscribe to messages
   useEffect(() => {
     const loadAdmins = async () => {
-      const { data } = await supabase.from('profiles').select('id, full_name').eq('role', 'admin');
+      const { data, error } = await supabase.from('profiles').select('id, full_name').eq('role', 'admin');
+      if (error) {
+        console.error('Load admins error:', error);
+      }
       setAdmins(data || []);
       if ((data || []).length > 0 && !selectedAdmin) setSelectedAdmin((data || [])[0].id);
     };
     const loadInbox = async () => {
       if (!user?.id) return;
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('messages')
         .select('id, body, sender_id, recipient_id, created_at, profiles:sender_id(full_name)')
-        .or(`recipient_id.eq.${user.id},sender_id.eq.${user.id})`)
+        .or(`recipient_id.eq.${user.id},sender_id.eq.${user.id}`)
         .order('created_at', { ascending: false })
         .limit(20);
+      if (error) {
+        console.error('Inbox load error (rep):', error);
+        return;
+      }
       setInbox((data || []).map((m: any) => ({
         id: m.id,
         body: m.body,
@@ -141,11 +148,15 @@ const SalesDashboard = () => {
 
   const sendMessageToAdmin = async () => {
     if (!selectedAdmin || !newMessage.trim() || !user?.id) return;
-    await supabase.from('messages').insert({
+    const { error } = await supabase.from('messages').insert({
       sender_id: user.id,
       recipient_id: selectedAdmin,
       body: newMessage.trim()
     });
+    if (error) {
+      console.error('Send message error (rep):', error);
+      return;
+    }
     setNewMessage('');
   };
 

@@ -171,12 +171,16 @@ const AdminDashboard = () => {
   useEffect(() => {
     if (profile?.role !== 'admin' || !profile?.id) return;
     const loadInbox = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('messages')
         .select('id, body, sender_id, recipient_id, created_at, profiles:sender_id(full_name)')
-        .or(`recipient_id.eq.${profile.id},sender_id.eq.${profile.id})`)
+        .or(`recipient_id.eq.${profile.id},sender_id.eq.${profile.id}`)
         .order('created_at', { ascending: false })
         .limit(20);
+      if (error) {
+        console.error('Inbox load error (admin):', error);
+        return;
+      }
       setInbox((data || []).map((m: any) => ({
         id: m.id,
         body: m.body,
@@ -195,12 +199,18 @@ const AdminDashboard = () => {
 
   const sendMessageToRep = async () => {
     if (!selectedRepForMsg || !newMessage.trim() || !profile?.id) return;
-    await supabase.from('messages').insert({
+    const { error } = await supabase.from('messages').insert({
       sender_id: profile.id,
       recipient_id: selectedRepForMsg,
       body: newMessage.trim()
     });
+    if (error) {
+      console.error('Send message error (admin):', error);
+      toast({ title: 'Message failed', description: error.message || 'Unable to send message', variant: 'destructive' });
+      return;
+    }
     setNewMessage('');
+    toast({ title: 'Message sent' });
   };
 
   useEffect(() => {
