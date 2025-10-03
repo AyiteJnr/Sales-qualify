@@ -452,11 +452,11 @@ const LeadsManagement = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate(-1)}
               className="text-gray-600 hover:text-gray-900"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
+              Back
             </Button>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Leads Management</h1>

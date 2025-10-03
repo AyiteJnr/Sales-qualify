@@ -89,6 +89,20 @@ const SalesDashboard = () => {
     }
   }, [profile, navigate]);
 
+  // Realtime subscription for my call records
+  useEffect(() => {
+    if (profile?.role !== 'rep' || !user?.id) return;
+    const channel = supabase
+      .channel('realtime-call-records-rep')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'call_records', filter: `rep_id=eq.${user.id}` }, () => {
+        fetchDashboardData();
+      })
+      .subscribe();
+    return () => {
+      try { supabase.removeChannel(channel); } catch {}
+    };
+  }, [profile, user?.id]);
+
   const fetchDashboardData = async () => {
     try {
       if (!initialLoaded) setLoading(true);

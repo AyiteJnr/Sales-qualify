@@ -148,6 +148,60 @@ const AdminDashboard = () => {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [initialLoaded, setInitialLoaded] = useState(false);
+  const [inbox, setInbox] = useState<Array<{ id: string; body: string; sender_id: string; recipient_id: string; created_at: string; sender_name?: string }>>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [selectedRepForMsg, setSelectedRepForMsg] = useState<string>('');
+
+  // Realtime subscription for call records to keep dashboard in sync
+  useEffect(() => {
+    if (profile?.role !== 'admin') return;
+    const channel = supabase
+      .channel('realtime-call-records-admin')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'call_records' }, () => {
+        // Light refresh without full-page spinner
+        fetchDashboardData(false);
+      })
+      .subscribe();
+    return () => {
+      try { supabase.removeChannel(channel); } catch {}
+    };
+  }, [profile]);
+
+  // Fetch inbox for admin
+  useEffect(() => {
+    if (profile?.role !== 'admin' || !profile?.id) return;
+    const loadInbox = async () => {
+      const { data } = await supabase
+        .from('messages')
+        .select('id, body, sender_id, recipient_id, created_at, profiles:sender_id(full_name)')
+        .or(`recipient_id.eq.${profile.id},sender_id.eq.${profile.id})`)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      setInbox((data || []).map((m: any) => ({
+        id: m.id,
+        body: m.body,
+        sender_id: m.sender_id,
+        recipient_id: m.recipient_id,
+        created_at: m.created_at,
+        sender_name: m.profiles?.full_name
+      })));
+    };
+    loadInbox();
+    const ch = supabase.channel('realtime-messages-admin')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, loadInbox)
+      .subscribe();
+    return () => { try { supabase.removeChannel(ch); } catch {} };
+  }, [profile?.id, profile?.role]);
+
+  const sendMessageToRep = async () => {
+    if (!selectedRepForMsg || !newMessage.trim() || !profile?.id) return;
+    await supabase.from('messages').insert({
+      sender_id: profile.id,
+      recipient_id: selectedRepForMsg,
+      body: newMessage.trim()
+    });
+    setNewMessage('');
+  };
 
   useEffect(() => {
     console.log('AdminDashboard useEffect - profile:', profile);
@@ -1007,22 +1061,46 @@ const AdminDashboard = () => {
                               </div>
                             </div>
                           ))}
-                        
-                        {callRecords.filter(r => r.qualification_status === 'hot' || r.is_hot_deal).length === 0 && !loading && (
-                          <div className="text-center py-8">
-                            <h3 className="text-lg font-semibold mb-2">No Hot Deals</h3>
-                            <p className="text-muted-foreground mb-4">
-                              Hot deals will appear here when leads score high
-                            </p>
-                            <Button variant="outline" onClick={() => navigate('/call-history')}>
-                              View Call History
-                            </Button>
-                          </div>
-                        )}
+                      {/* Admin Inbox & Messaging */}
+                      <div className="p-4 border rounded-lg">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-semibold">Team Messages</h4>
+                        </div>
+                        <div className="space-y-2 max-h-56 overflow-auto mb-3">
+                          {inbox.map(msg => (
+                            <div key={msg.id} className="text-sm">
+                              <span className="font-medium">{msg.sender_name || 'User'}</span>: {msg.body}
+                              <span className="text-xs text-muted-foreground ml-2">{new Date(msg.created_at).toLocaleString()}</span>
+                            </div>
+                          ))}
+                          {inbox.length === 0 && (
+                            <div className="text-sm text-muted-foreground">No messages yet.</div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Select value={selectedRepForMsg} onValueChange={setSelectedRepForMsg}>
+                            <SelectTrigger className="w-64">
+                              <SelectValue placeholder="Select sales rep" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {repPerformance.map(r => (
+                                <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Textarea
+                            placeholder="Type a message to the selected rep"
+                            value={newMessage}
+                            onChange={(e) => setNewMessage(e.target.value)}
+                            className="min-h-[44px]"
+                          />
+                          <Button onClick={sendMessageToRep} disabled={!selectedRepForMsg || !newMessage.trim()}>Send</Button>
+                        </div>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
                   {/* Quick Actions */}
                   <Card>

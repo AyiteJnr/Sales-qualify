@@ -290,6 +290,19 @@ const CallHistory = () => {
         if (updateError) throw updateError;
       }
 
+      // Also drop a message into messages inbox if table exists
+      try {
+        if (profile?.id) {
+          await supabase.from('messages').insert({
+            sender_id: profile.id,
+            recipient_id: callRecord.rep_id,
+            body: `Follow-up requested: ${followUpMessage}`
+          });
+        }
+      } catch (e) {
+        console.log('messages insert skipped');
+      }
+
       toast({
         title: "Follow-up Sent",
         description: `Follow-up request sent to ${callRecord.profiles?.full_name || 'sales rep'}`,
