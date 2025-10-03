@@ -153,6 +153,7 @@ const AdminDashboard = () => {
   const [newMessage, setNewMessage] = useState('');
   const [selectedRepForMsg, setSelectedRepForMsg] = useState<string>('');
   const [dealFilter, setDealFilter] = useState<'all' | 'hot' | 'warm' | 'cold'>('all');
+  const [showMessagesModal, setShowMessagesModal] = useState(false);
 
   // Realtime subscription for call records to keep dashboard in sync
   useEffect(() => {
@@ -724,10 +725,7 @@ const AdminDashboard = () => {
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
-              onClick={() => {
-                const messagesTab = document.querySelector('[value="messages"]') as HTMLElement;
-                if (messagesTab) messagesTab.click();
-              }}
+              onClick={() => setShowMessagesModal(true)}
               className="relative"
             >
               <Phone className="h-4 w-4 mr-2" />
@@ -810,12 +808,11 @@ const AdminDashboard = () => {
           <div>
 
             <Tabs defaultValue="overview" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-6 bg-gray-100 p-1 rounded-lg">
+              <TabsList className="grid w-full grid-cols-5 bg-gray-100 p-1 rounded-lg">
                 <TabsTrigger value="overview" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Overview</TabsTrigger>
                 <TabsTrigger value="deals" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Deals</TabsTrigger>
                 <TabsTrigger value="performance" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Performance</TabsTrigger>
                 <TabsTrigger value="leads" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Lead Management</TabsTrigger>
-                <TabsTrigger value="messages" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">💬 Messages</TabsTrigger>
                 <TabsTrigger value="settings" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Settings</TabsTrigger>
               </TabsList>
 
@@ -1478,94 +1475,6 @@ const AdminDashboard = () => {
               </TabsContent>
 
 
-              <TabsContent value="messages" className="space-y-6">
-                <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-0 shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-xl">
-                      <Phone className="h-6 w-6 text-blue-600" />
-                      Messages
-                    </CardTitle>
-                    <CardDescription className="text-gray-600">
-                      Communicate with your team members and view conversation history
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {/* Message History */}
-                    <div className="bg-white rounded-xl p-6 shadow-sm border">
-                      <h4 className="font-semibold mb-4 text-lg text-gray-800">Recent Messages</h4>
-                      <div className="space-y-3 max-h-80 overflow-auto">
-                        {inbox.map(msg => (
-                          <div key={msg.id} className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
-                            <div className="flex justify-between items-start mb-2">
-                              <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                                  {(msg.sender_name || 'U').charAt(0).toUpperCase()}
-                                </div>
-                                <div>
-                                  <span className="font-medium text-gray-900">{msg.sender_name || 'User'}</span>
-                                  <span className="text-gray-500 ml-2 text-sm">to {msg.recipient_id === profile?.id ? 'You' : 'Team'}</span>
-                                </div>
-                              </div>
-                              <span className="text-xs text-gray-400">{new Date(msg.created_at).toLocaleString()}</span>
-                            </div>
-                            <div className="text-gray-700 ml-10">{msg.body}</div>
-                          </div>
-                        ))}
-                        {inbox.length === 0 && (
-                          <div className="text-center py-8">
-                            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                              <Phone className="h-8 w-8 text-gray-400" />
-                            </div>
-                            <p className="text-gray-500 text-lg">No messages yet</p>
-                            <p className="text-gray-400 text-sm">Start a conversation with your team!</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Send Message */}
-                    <div className="bg-white rounded-xl p-6 shadow-sm border">
-                      <h4 className="font-semibold mb-4 text-lg text-gray-800">Send Message</h4>
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-3">
-                          <Select value={selectedRepForMsg} onValueChange={setSelectedRepForMsg}>
-                            <SelectTrigger className="w-80 h-12">
-                              <SelectValue placeholder="Select recipient" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {allUsers.filter(user => user.id !== profile?.id).map(user => (
-                                <SelectItem key={user.id} value={user.id}>
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-medium">
-                                      {user.full_name.charAt(0).toUpperCase()}
-                                    </div>
-                                    {user.full_name} ({user.role})
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="flex items-end gap-3">
-                          <Textarea
-                            placeholder="Type your message here..."
-                            value={newMessage}
-                            onChange={(e) => setNewMessage(e.target.value)}
-                            className="min-h-[100px] flex-1 resize-none"
-                          />
-                          <Button 
-                            onClick={sendMessage} 
-                            disabled={!selectedRepForMsg || !newMessage.trim()}
-                            className="h-12 px-6 bg-blue-600 hover:bg-blue-700"
-                          >
-                            Send
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
 
               <TabsContent value="settings" className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1754,6 +1663,108 @@ const AdminDashboard = () => {
           )}
           <div className="flex justify-end pt-4">
             <Button variant="outline" onClick={() => setShowUsersModal(false)}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Messages Modal */}
+      <Dialog open={showMessagesModal} onOpenChange={setShowMessagesModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Phone className="h-5 w-5" />
+              Messages
+              {inbox.length > 0 && (
+                <Badge variant="destructive" className="ml-2">
+                  {inbox.length}
+                </Badge>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              Communicate with your team members and view conversation history
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-h-[60vh] overflow-hidden">
+            {/* Message History */}
+            <div className="space-y-4">
+              <h4 className="font-semibold text-lg">Recent Messages</h4>
+              <div className="bg-gray-50 rounded-lg p-4 max-h-[40vh] overflow-auto">
+                <div className="space-y-3">
+                  {inbox.map(msg => (
+                    <div key={msg.id} className="bg-white rounded-lg p-3 shadow-sm border">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                            {(msg.sender_name || 'U').charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-900">{msg.sender_name || 'User'}</span>
+                            <span className="text-gray-500 ml-2 text-sm">to {msg.recipient_id === profile?.id ? 'You' : 'Team'}</span>
+                          </div>
+                        </div>
+                        <span className="text-xs text-gray-400">{new Date(msg.created_at).toLocaleString()}</span>
+                      </div>
+                      <div className="text-gray-700 ml-10">{msg.body}</div>
+                    </div>
+                  ))}
+                  {inbox.length === 0 && (
+                    <div className="text-center py-8">
+                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Phone className="h-8 w-8 text-gray-400" />
+                      </div>
+                      <p className="text-gray-500 text-lg">No messages yet</p>
+                      <p className="text-gray-400 text-sm">Start a conversation with your team!</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Send Message */}
+            <div className="space-y-4">
+              <h4 className="font-semibold text-lg">Send Message</h4>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Select Recipient</label>
+                    <Select value={selectedRepForMsg} onValueChange={setSelectedRepForMsg}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select recipient" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allUsers.filter(user => user.id !== profile?.id).map(user => (
+                          <SelectItem key={user.id} value={user.id}>
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-medium">
+                                {user.full_name.charAt(0).toUpperCase()}
+                              </div>
+                              {user.full_name} ({user.role})
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
+                    <Textarea
+                      placeholder="Type your message here..."
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      className="min-h-[100px] resize-none"
+                    />
+                  </div>
+                  <Button 
+                    onClick={sendMessage} 
+                    disabled={!selectedRepForMsg || !newMessage.trim()}
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                  >
+                    Send Message
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

@@ -85,6 +85,7 @@ const SalesDashboard = () => {
   const [selectedRecipient, setSelectedRecipient] = useState<string>('');
   const [newMessage, setNewMessage] = useState('');
   const [dealFilter, setDealFilter] = useState<'all' | 'hot' | 'warm' | 'cold'>('all');
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
 
   useEffect(() => {
     if (profile && profile.role !== 'rep') {
@@ -160,8 +161,19 @@ const SalesDashboard = () => {
     return () => { try { supabase.removeChannel(ch); } catch {} };
   }, [user?.id]);
 
+  const replyToMessage = (messageId: string, senderId: string, senderName: string) => {
+    setReplyingTo(messageId);
+    setSelectedRecipient(senderId);
+    setNewMessage(`@${senderName} `);
+    // Scroll to send message section
+    const sendSection = document.querySelector('[data-send-message]');
+    if (sendSection) {
+      sendSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   const sendMessage = async () => {
-    console.log('SalesDashboard sendMessage called with:', { selectedRecipient, newMessage: newMessage.trim(), userId: user?.id });
+    console.log('SalesDashboard sendMessage called with:', { selectedRecipient, newMessage: newMessage.trim(), userId: user?.id, replyingTo });
     if (!selectedRecipient || !newMessage.trim() || !user?.id) {
       console.log('Missing information for message:', { selectedRecipient, newMessage: newMessage.trim(), userId: user?.id });
       toast({ title: "Missing information", description: "Please select a recipient and enter a message.", variant: "destructive" });
@@ -169,10 +181,11 @@ const SalesDashboard = () => {
     }
     try {
       console.log('Attempting to send message to database...');
+      const messageBody = replyingTo ? `Reply: ${newMessage.trim()}` : newMessage.trim();
       const { error } = await supabase.from('messages').insert({
         sender_id: user.id,
         recipient_id: selectedRecipient,
-        body: newMessage.trim()
+        body: messageBody
       });
       if (error) {
         console.error('Database error:', error);
@@ -180,6 +193,7 @@ const SalesDashboard = () => {
       }
       console.log('Message sent successfully');
       setNewMessage('');
+      setReplyingTo(null);
       // Show success feedback
       const recipientName = recipients.find(r => r.id === selectedRecipient)?.full_name || 'recipient';
       console.log(`Message sent to ${recipientName}`);
@@ -921,7 +935,19 @@ const SalesDashboard = () => {
                               <span className="text-gray-500 ml-2 text-sm">to {msg.recipient_id === user?.id ? 'You' : 'Team'}</span>
                             </div>
                           </div>
-                          <span className="text-xs text-gray-400">{new Date(msg.created_at).toLocaleString()}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400">{new Date(msg.created_at).toLocaleString()}</span>
+                            {msg.sender_id !== user?.id && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => replyToMessage(msg.id, msg.sender_id, msg.sender_name || 'User')}
+                                className="h-6 px-2 text-xs"
+                              >
+                                Reply
+                              </Button>
+                            )}
+                          </div>
                         </div>
                         <div className="text-gray-700 ml-10">{msg.body}</div>
                       </div>
@@ -939,8 +965,20 @@ const SalesDashboard = () => {
                 </div>
 
                 {/* Send Message */}
-                <div className="bg-white rounded-xl p-6 shadow-sm border">
-                  <h4 className="font-semibold mb-4 text-lg text-gray-800">Send Message</h4>
+                <div className="bg-white rounded-xl p-6 shadow-sm border" data-send-message>
+                  <h4 className="font-semibold mb-4 text-lg text-gray-800">
+                    {replyingTo ? 'Reply to Message' : 'Send Message'}
+                    {replyingTo && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setReplyingTo(null)}
+                        className="ml-2"
+                      >
+                        Cancel Reply
+                      </Button>
+                    )}
+                  </h4>
                   <div className="space-y-4">
                     <div className="flex items-center gap-3">
                       <Select value={selectedRecipient} onValueChange={setSelectedRecipient}>
@@ -963,7 +1001,7 @@ const SalesDashboard = () => {
                     </div>
                     <div className="flex items-end gap-3">
                       <Textarea
-                        placeholder="Type your message here..."
+                        placeholder={replyingTo ? "Type your reply here..." : "Type your message here..."}
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
                         className="min-h-[100px] flex-1 resize-none"
@@ -973,7 +1011,7 @@ const SalesDashboard = () => {
                         disabled={!selectedRecipient || !newMessage.trim()}
                         className="h-12 px-6 bg-green-600 hover:bg-green-700"
                       >
-                        Send
+                        {replyingTo ? 'Reply' : 'Send'}
                       </Button>
                     </div>
                   </div>
