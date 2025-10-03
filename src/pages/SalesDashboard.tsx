@@ -84,6 +84,7 @@ const SalesDashboard = () => {
   const [recipients, setRecipients] = useState<Array<{ id: string; full_name: string }>>([]);
   const [selectedRecipient, setSelectedRecipient] = useState<string>('');
   const [newMessage, setNewMessage] = useState('');
+  const [dealFilter, setDealFilter] = useState<'all' | 'hot' | 'warm' | 'cold'>('all');
 
   useEffect(() => {
     if (profile && profile.role !== 'rep') {
@@ -405,65 +406,6 @@ const SalesDashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <div className="container mx-auto px-4 py-8">
-        {/* Enterprise Header */}
-        <div className="bg-gradient-to-r from-green-600 to-emerald-700 rounded-xl p-6 mb-8 text-white shadow-xl">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-4xl font-bold mb-2">Sales Dashboard</h1>
-              <p className="text-green-100 text-lg">Track your leads, calls, and performance metrics</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <div className="text-2xl font-bold">{stats.myLeads}</div>
-                <div className="text-green-200 text-sm">My Leads</div>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold">{stats.callsToday}</div>
-                <div className="text-green-200 text-sm">Calls Today</div>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold">{stats.conversionRate}%</div>
-                <div className="text-green-200 text-sm">Conversion</div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Action Buttons */}
-          <div className="flex items-center gap-3 mt-6">
-            <Button 
-              onClick={() => {
-                const messagesSection = document.querySelector('[data-messages-section]');
-                if (messagesSection) {
-                  messagesSection.scrollIntoView({ behavior: 'smooth' });
-                }
-              }}
-              className="bg-white text-green-600 hover:bg-green-50 border-0 shadow-lg"
-            >
-              💬 Messages
-              {inbox.length > 0 && (
-                <Badge variant="destructive" className="ml-2">
-                  {inbox.length}
-                </Badge>
-              )}
-            </Button>
-            <Button 
-              variant="outline"
-              onClick={() => navigate('/call-history')}
-              className="bg-transparent border-white text-white hover:bg-white hover:text-green-600"
-            >
-              <BarChart3 className="h-4 w-4 mr-2" />
-              View Analytics
-            </Button>
-            <Button 
-              variant="outline"
-              onClick={() => navigate('/client/new')}
-              className="bg-transparent border-white text-white hover:bg-white hover:text-green-600"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Lead
-            </Button>
-          </div>
-        </div>
 
         {/* Header */}
         <motion.div 
@@ -744,69 +686,124 @@ const SalesDashboard = () => {
             </Card>
           </motion.div>
 
-          {/* Hot Deals Section */}
-          {stats.hotDeals > 0 && (
-            <motion.div variants={itemVariants} className="mt-8">
-              <Card className="border-red-200 bg-gradient-to-br from-red-50 to-orange-50">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-red-700">
-                    <Star className="h-5 w-5" />
-                    🔥 My Hot Deals ({stats.hotDeals})
-                  </CardTitle>
-                  <CardDescription className="text-red-600">
-                    High-priority leads that need immediate attention
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {recentCalls
-                      .filter(call => call.qualification_status === 'hot')
-                      .slice(0, 3)
-                      .map((call) => (
-                        <div key={call.id} className="flex items-center justify-between p-4 bg-white rounded-lg border border-red-200 shadow-sm">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                              <span className="text-lg">🔥</span>
-                            </div>
-                            <div>
-                              <p className="font-semibold text-gray-900">{call.client_name}</p>
-                              <p className="text-sm text-gray-600">
-                                Score: {call.score}/100 • {new Date(call.call_timestamp).toLocaleDateString()}
-                              </p>
-                            </div>
+          {/* Deals Section with Filtering */}
+          <motion.div variants={itemVariants} className="mt-8">
+            <Card className="border-gray-200 bg-gradient-to-br from-gray-50 to-blue-50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-gray-800">
+                  <TrendingUp className="h-5 w-5" />
+                  My Deals Dashboard
+                  <Badge variant="outline">
+                    {recentCalls.length} Total
+                  </Badge>
+                </CardTitle>
+                <CardDescription className="text-gray-600">
+                  Comprehensive view of all your deals - hot, warm, and cold leads
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* Deal Type Filter */}
+                <div className="flex gap-2 mb-6">
+                  <Button 
+                    variant={dealFilter === 'hot' ? "default" : "outline"}
+                    onClick={() => setDealFilter('hot')}
+                    className={dealFilter === 'hot' ? "bg-red-500 hover:bg-red-600 text-white" : "border-red-500 text-red-600 hover:bg-red-50"}
+                  >
+                    🔥 Hot Deals ({recentCalls.filter(call => call.qualification_status === 'hot').length})
+                  </Button>
+                  <Button 
+                    variant={dealFilter === 'warm' ? "default" : "outline"}
+                    onClick={() => setDealFilter('warm')}
+                    className={dealFilter === 'warm' ? "bg-yellow-500 hover:bg-yellow-600 text-white" : "border-yellow-500 text-yellow-600 hover:bg-yellow-50"}
+                  >
+                    🌡️ Warm Deals ({recentCalls.filter(call => call.qualification_status === 'warm').length})
+                  </Button>
+                  <Button 
+                    variant={dealFilter === 'cold' ? "default" : "outline"}
+                    onClick={() => setDealFilter('cold')}
+                    className={dealFilter === 'cold' ? "bg-blue-500 hover:bg-blue-600 text-white" : "border-blue-500 text-blue-600 hover:bg-blue-50"}
+                  >
+                    ❄️ Cold Deals ({recentCalls.filter(call => call.qualification_status === 'cold').length})
+                  </Button>
+                  <Button 
+                    variant={dealFilter === 'all' ? "default" : "outline"}
+                    onClick={() => setDealFilter('all')}
+                    className={dealFilter === 'all' ? "bg-gray-500 hover:bg-gray-600 text-white" : "border-gray-500 text-gray-600 hover:bg-gray-50"}
+                  >
+                    📊 All Deals ({recentCalls.length})
+                  </Button>
+                </div>
+
+                {/* Filtered Deals Display */}
+                <div className="space-y-3">
+                  {recentCalls
+                    .filter(call => dealFilter === 'all' || call.qualification_status === dealFilter)
+                    .slice(0, 5)
+                    .map((call) => (
+                      <div key={call.id} className={`flex items-center justify-between p-4 bg-white rounded-lg border shadow-sm ${
+                        call.qualification_status === 'hot' ? 'border-red-200' :
+                        call.qualification_status === 'warm' ? 'border-yellow-200' :
+                        call.qualification_status === 'cold' ? 'border-blue-200' : 'border-gray-200'
+                      }`}>
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                            call.qualification_status === 'hot' ? 'bg-red-100' :
+                            call.qualification_status === 'warm' ? 'bg-yellow-100' :
+                            call.qualification_status === 'cold' ? 'bg-blue-100' : 'bg-gray-100'
+                          }`}>
+                            <span className="text-lg">
+                              {call.qualification_status === 'hot' ? '🔥' :
+                               call.qualification_status === 'warm' ? '🌡️' :
+                               call.qualification_status === 'cold' ? '❄️' : '📊'}
+                            </span>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <Badge className="bg-red-600 text-white">
-                              HOT
-                            </Badge>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => navigate(`/qualification/${call.id}`)}
-                              className="border-red-200 text-red-600 hover:bg-red-50"
-                            >
-                              Follow Up
-                            </Button>
+                          <div>
+                            <p className="font-semibold text-gray-900">{call.client_name}</p>
+                            <p className="text-sm text-gray-600">
+                              Score: {call.score}/100 • {new Date(call.call_timestamp).toLocaleDateString()}
+                            </p>
                           </div>
                         </div>
-                      ))}
+                        <div className="flex items-center gap-3">
+                          <Badge className={`${
+                            call.qualification_status === 'hot' ? 'bg-red-600 text-white' :
+                            call.qualification_status === 'warm' ? 'bg-yellow-600 text-white' :
+                            call.qualification_status === 'cold' ? 'bg-blue-600 text-white' : 'bg-gray-600 text-white'
+                          }`}>
+                            {call.qualification_status?.toUpperCase() || 'UNKNOWN'}
+                          </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate(`/qualification/${call.id}`)}
+                            className={`${
+                              call.qualification_status === 'hot' ? 'border-red-200 text-red-600 hover:bg-red-50' :
+                              call.qualification_status === 'warm' ? 'border-yellow-200 text-yellow-600 hover:bg-yellow-50' :
+                              call.qualification_status === 'cold' ? 'border-blue-200 text-blue-600 hover:bg-blue-50' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                            }`}
+                          >
+                            Follow Up
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+
+                {recentCalls.filter(call => dealFilter === 'all' || call.qualification_status === dealFilter).length > 5 && (
+                  <div className="text-center mt-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => navigate(`/call-history?filter=${dealFilter}`)}
+                      className="border-gray-200 text-gray-600 hover:bg-gray-50"
+                    >
+                      View All {dealFilter === 'all' ? 'Deals' : dealFilter.charAt(0).toUpperCase() + dealFilter.slice(1) + ' Deals'}
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
                   </div>
-                  {stats.hotDeals > 3 && (
-                    <div className="text-center mt-4">
-                      <Button
-                        variant="outline"
-                        onClick={() => navigate('/call-history?hot=true')}
-                        className="border-red-200 text-red-600 hover:bg-red-50"
-                      >
-                        View All {stats.hotDeals} Hot Deals
-                        <ArrowRight className="h-4 w-4 ml-2" />
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
 
           {/* Recent Calls */}
           {recentCalls.length > 0 && (

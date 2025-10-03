@@ -152,6 +152,7 @@ const AdminDashboard = () => {
   const [inbox, setInbox] = useState<Array<{ id: string; body: string; sender_id: string; recipient_id: string; created_at: string; sender_name?: string }>>([]);
   const [newMessage, setNewMessage] = useState('');
   const [selectedRepForMsg, setSelectedRepForMsg] = useState<string>('');
+  const [dealFilter, setDealFilter] = useState<'all' | 'hot' | 'warm' | 'cold'>('all');
 
   // Realtime subscription for call records to keep dashboard in sync
   useEffect(() => {
@@ -779,63 +780,6 @@ const AdminDashboard = () => {
 
           {/* Main Content */}
           <div>
-            {/* Enterprise Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl p-6 mb-8 text-white shadow-xl">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
-                  <p className="text-blue-100 text-lg">Comprehensive sales management and analytics platform</p>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <div className="text-2xl font-bold">{stats.totalLeads}</div>
-                    <div className="text-blue-200 text-sm">Total Leads</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold">{stats.totalCalls}</div>
-                    <div className="text-blue-200 text-sm">Total Calls</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold">{stats.hotDeals}</div>
-                    <div className="text-blue-200 text-sm">Hot Deals</div>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Action Buttons */}
-              <div className="flex items-center gap-3 mt-6">
-                <Button 
-                  onClick={() => {
-                    const messagesTab = document.querySelector('[value="messages"]') as HTMLElement;
-                    if (messagesTab) messagesTab.click();
-                  }}
-                  className="bg-white text-blue-600 hover:bg-blue-50 border-0 shadow-lg"
-                >
-                  💬 Messages
-                  {inbox.length > 0 && (
-                    <Badge variant="destructive" className="ml-2">
-                      {inbox.length}
-                    </Badge>
-                  )}
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => navigate('/call-history')}
-                  className="bg-transparent border-white text-white hover:bg-white hover:text-blue-600"
-                >
-                  <BarChart3 className="h-4 w-4 mr-2" />
-                  View Analytics
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => navigate('/leads-management')}
-                  className="bg-transparent border-white text-white hover:bg-white hover:text-blue-600"
-                >
-                  <Users className="h-4 w-4 mr-2" />
-                  Manage Leads
-                </Button>
-              </div>
-            </div>
 
             <Tabs defaultValue="overview" className="space-y-6">
               <TabsList className="grid w-full grid-cols-6 bg-gray-100 p-1 rounded-lg">
@@ -988,64 +932,124 @@ const AdminDashboard = () => {
 
               <TabsContent value="deals" className="space-y-6">
                 <div className="grid gap-6">
-                  {/* Hot Deals Header */}
+                  {/* Deals Filter Header */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <TrendingUp className="h-5 w-5 text-blue-600" />
+                        Deals Dashboard
+                        <Badge variant="outline">
+                          {callRecords.length} Total
+                        </Badge>
+                      </CardTitle>
+                      <CardDescription>
+                        Comprehensive view of all deals - hot, warm, and cold leads
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {/* Deal Type Filter */}
+                      <div className="flex gap-2 mb-4">
+                        <Button 
+                          variant={dealFilter === 'hot' ? "default" : "outline"}
+                          onClick={() => setDealFilter('hot')}
+                          className={dealFilter === 'hot' ? "bg-red-500 hover:bg-red-600 text-white" : "border-red-500 text-red-600 hover:bg-red-50"}
+                        >
+                          🔥 Hot Deals ({callRecords.filter(r => r.qualification_status === 'hot').length})
+                        </Button>
+                        <Button 
+                          variant={dealFilter === 'warm' ? "default" : "outline"}
+                          onClick={() => setDealFilter('warm')}
+                          className={dealFilter === 'warm' ? "bg-yellow-500 hover:bg-yellow-600 text-white" : "border-yellow-500 text-yellow-600 hover:bg-yellow-50"}
+                        >
+                          🌡️ Warm Deals ({callRecords.filter(r => r.qualification_status === 'warm').length})
+                        </Button>
+                        <Button 
+                          variant={dealFilter === 'cold' ? "default" : "outline"}
+                          onClick={() => setDealFilter('cold')}
+                          className={dealFilter === 'cold' ? "bg-blue-500 hover:bg-blue-600 text-white" : "border-blue-500 text-blue-600 hover:bg-blue-50"}
+                        >
+                          ❄️ Cold Deals ({callRecords.filter(r => r.qualification_status === 'cold').length})
+                        </Button>
+                        <Button 
+                          variant={dealFilter === 'all' ? "default" : "outline"}
+                          onClick={() => setDealFilter('all')}
+                          className={dealFilter === 'all' ? "bg-gray-500 hover:bg-gray-600 text-white" : "border-gray-500 text-gray-600 hover:bg-gray-50"}
+                        >
+                          📊 All Deals ({callRecords.length})
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Filtered Deals Display */}
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <TrendingUp className="h-5 w-5 text-red-600" />
-                        Hot Deals Dashboard
+                        {dealFilter === 'all' ? 'All Deals' : `${dealFilter.charAt(0).toUpperCase() + dealFilter.slice(1)} Deals`}
                         <Badge variant="destructive">
-                          {callRecords.filter(r => r.qualification_status === 'hot' || r.is_hot_deal).length} Active
+                          {dealFilter === 'all' ? callRecords.length : 
+                           dealFilter === 'hot' ? callRecords.filter(r => r.qualification_status === 'hot').length :
+                           dealFilter === 'warm' ? callRecords.filter(r => r.qualification_status === 'warm').length :
+                           callRecords.filter(r => r.qualification_status === 'cold').length} Active
                         </Badge>
                       </CardTitle>
                       <CardDescription>
-                        Monitor and manage high-priority leads that require immediate attention
+                        {dealFilter === 'hot' ? 'High-priority leads that need immediate attention' :
+                         dealFilter === 'warm' ? 'Medium-priority leads with potential' :
+                         dealFilter === 'cold' ? 'Low-priority leads for future follow-up' :
+                         'Complete overview of all deal types'}
                       </CardDescription>
                     </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                        <Card>
+                          <CardContent className="pt-6 text-center">
+                            <div className={`text-2xl font-bold ${dealFilter === 'hot' ? 'text-red-600' : dealFilter === 'warm' ? 'text-yellow-600' : dealFilter === 'cold' ? 'text-blue-600' : 'text-gray-600'}`}>
+                              {dealFilter === 'all' ? callRecords.length : 
+                               dealFilter === 'hot' ? callRecords.filter(r => r.qualification_status === 'hot').length :
+                               dealFilter === 'warm' ? callRecords.filter(r => r.qualification_status === 'warm').length :
+                               callRecords.filter(r => r.qualification_status === 'cold').length}
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {dealFilter === 'all' ? 'Total Deals' : `${dealFilter.charAt(0).toUpperCase() + dealFilter.slice(1)} Leads`}
+                            </p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardContent className="pt-6 text-center">
+                            <div className="text-2xl font-bold text-orange-600">
+                              {callRecords.filter(r => r.follow_up_required).length}
+                            </div>
+                            <p className="text-sm text-muted-foreground">Follow-ups</p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardContent className="pt-6 text-center">
+                            <Button 
+                              onClick={() => navigate(`/call-history?filter=${dealFilter}`)}
+                              size="sm"
+                            >
+                              <FileText className="h-4 w-4 mr-2" />
+                              View {dealFilter === 'all' ? 'All' : dealFilter.charAt(0).toUpperCase() + dealFilter.slice(1)} Calls
+                            </Button>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardContent className="pt-6 text-center">
+                            <Button 
+                              variant="outline"
+                              onClick={() => navigate('/call-history')}
+                              size="sm"
+                            >
+                              <BarChart3 className="h-4 w-4 mr-2" />
+                              Analytics
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </CardContent>
                   </Card>
-
-                  {/* Hot Deals Actions */}
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <Card>
-                      <CardContent className="pt-6 text-center">
-                        <div className="text-2xl font-bold text-red-600">
-                          {callRecords.filter(r => r.qualification_status === 'hot').length}
-                        </div>
-                        <p className="text-sm text-muted-foreground">Hot Leads</p>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardContent className="pt-6 text-center">
-                        <div className="text-2xl font-bold text-orange-600">
-                          {callRecords.filter(r => r.follow_up_required).length}
-                        </div>
-                        <p className="text-sm text-muted-foreground">Follow-ups</p>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardContent className="pt-6 text-center">
-                        <Button 
-                          onClick={() => navigate('/call-history?hot=true')}
-                          size="sm"
-                        >
-                          <FileText className="h-4 w-4 mr-2" />
-                          View Hot Calls
-                        </Button>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardContent className="pt-6 text-center">
-                        <Button 
-                          variant="outline"
-                          onClick={() => navigate('/call-history?analytics=true')}
-                          size="sm"
-                        >
-                          <BarChart3 className="h-4 w-4 mr-2" />
-                          Analytics
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </div>
 
                   {/* Hot Deals List */}
                 <Card>
