@@ -405,25 +405,41 @@ const SalesDashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <div className="container mx-auto px-4 py-8">
-        {/* Header with Messages Button */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Sales Dashboard</h1>
-            <p className="text-gray-600">Track your leads, calls, and performance</p>
+        {/* Enterprise Header */}
+        <div className="bg-gradient-to-r from-green-600 to-emerald-700 rounded-xl p-6 mb-8 text-white shadow-xl">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-4xl font-bold mb-2">Sales Dashboard</h1>
+              <p className="text-green-100 text-lg">Track your leads, calls, and performance metrics</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <div className="text-2xl font-bold">{stats.myLeads}</div>
+                <div className="text-green-200 text-sm">My Leads</div>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold">{stats.callsToday}</div>
+                <div className="text-green-200 text-sm">Calls Today</div>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold">{stats.conversionRate}%</div>
+                <div className="text-green-200 text-sm">Conversion</div>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
+          
+          {/* Action Buttons */}
+          <div className="flex items-center gap-3 mt-6">
             <Button 
-              variant="outline" 
-              className="bg-blue-500 hover:bg-blue-600 text-white border-blue-500"
               onClick={() => {
-                // Scroll to messages section
                 const messagesSection = document.querySelector('[data-messages-section]');
                 if (messagesSection) {
                   messagesSection.scrollIntoView({ behavior: 'smooth' });
                 }
               }}
+              className="bg-white text-green-600 hover:bg-green-50 border-0 shadow-lg"
             >
-              💬 Team Messages
+              💬 Messages
               {inbox.length > 0 && (
                 <Badge variant="destructive" className="ml-2">
                   {inbox.length}
@@ -433,10 +449,18 @@ const SalesDashboard = () => {
             <Button 
               variant="outline"
               onClick={() => navigate('/call-history')}
-              className="flex items-center gap-2"
+              className="bg-transparent border-white text-white hover:bg-white hover:text-green-600"
             >
-              <BarChart3 className="h-4 w-4" />
+              <BarChart3 className="h-4 w-4 mr-2" />
               View Analytics
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => navigate('/client/new')}
+              className="bg-transparent border-white text-white hover:bg-white hover:text-green-600"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Lead
             </Button>
           </div>
         </div>
@@ -552,52 +576,116 @@ const SalesDashboard = () => {
             </Card>
           </motion.div>
 
-          {/* Analytics Section */}
+          {/* Analytics & Performance Section */}
           <motion.div variants={itemVariants} className="mb-8">
-            <Card>
+            <Card className="bg-gradient-to-br from-slate-50 to-green-50 border-0 shadow-lg">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5" />
-                  Analytics & Insights
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <BarChart3 className="h-6 w-6 text-green-600" />
+                  Analytics & Performance
                 </CardTitle>
-                <CardDescription>
-                  Comprehensive analytics for all your deals and performance
+                <CardDescription className="text-gray-600">
+                  Comprehensive analytics for all your deals and performance metrics
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <Button 
-                    variant="outline" 
-                    className="h-16 flex-col gap-2 border-red-200 text-red-600 hover:bg-red-50"
-                    onClick={() => navigate('/call-history?filter=hot')}
-                  >
-                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                    Hot Deals Analytics
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="h-16 flex-col gap-2 border-yellow-200 text-yellow-600 hover:bg-yellow-50"
-                    onClick={() => navigate('/call-history?filter=warm')}
-                  >
-                    <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                    Warm Deals Analytics
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="h-16 flex-col gap-2 border-blue-200 text-blue-600 hover:bg-blue-50"
-                    onClick={() => navigate('/call-history?filter=cold')}
-                  >
-                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                    Cold Deals Analytics
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="h-16 flex-col gap-2"
-                    onClick={() => navigate('/call-history')}
-                  >
-                    <BarChart3 className="h-5 w-5" />
-                    All Analytics
-                  </Button>
+                {/* Performance Metrics Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <div className="bg-white rounded-lg p-4 shadow-sm border">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">My Leads</p>
+                        <p className="text-2xl font-bold text-blue-600">{stats.myLeads}</p>
+                      </div>
+                      <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                        <Users className="h-6 w-6 text-blue-600" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-lg p-4 shadow-sm border">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">Calls Today</p>
+                        <p className="text-2xl font-bold text-green-600">{stats.callsToday}</p>
+                      </div>
+                      <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                        <Phone className="h-6 w-6 text-green-600" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-lg p-4 shadow-sm border">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">Conversion Rate</p>
+                        <p className="text-2xl font-bold text-purple-600">{stats.conversionRate}%</p>
+                      </div>
+                      <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                        <TrendingUp className="h-6 w-6 text-purple-600" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-lg p-4 shadow-sm border">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">Avg Score</p>
+                        <p className="text-2xl font-bold text-orange-600">{stats.avgScore}</p>
+                      </div>
+                      <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
+                        <Target className="h-6 w-6 text-orange-600" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Deal Analytics */}
+                <div className="mb-6">
+                  <h4 className="font-semibold mb-4 text-gray-800 text-lg">Deal Analytics</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button 
+                      variant="outline" 
+                      className="h-14 flex items-center gap-3 justify-start border-red-200 hover:bg-red-50 hover:border-red-300"
+                      onClick={() => navigate('/call-history?filter=hot')}
+                    >
+                      <div className="w-4 h-4 bg-red-500 rounded-full"></div>
+                      <div className="text-left">
+                        <div className="font-medium">Hot Deals</div>
+                        <div className="text-sm text-gray-500">High priority leads</div>
+                      </div>
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="h-14 flex items-center gap-3 justify-start border-yellow-200 hover:bg-yellow-50 hover:border-yellow-300"
+                      onClick={() => navigate('/call-history?filter=warm')}
+                    >
+                      <div className="w-4 h-4 bg-yellow-500 rounded-full"></div>
+                      <div className="text-left">
+                        <div className="font-medium">Warm Deals</div>
+                        <div className="text-sm text-gray-500">Medium priority leads</div>
+                      </div>
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="h-14 flex items-center gap-3 justify-start border-blue-200 hover:bg-blue-50 hover:border-blue-300"
+                      onClick={() => navigate('/call-history?filter=cold')}
+                    >
+                      <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
+                      <div className="text-left">
+                        <div className="font-medium">Cold Deals</div>
+                        <div className="text-sm text-gray-500">Low priority leads</div>
+                      </div>
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="h-14 flex items-center gap-3 justify-start border-gray-200 hover:bg-gray-50 hover:border-gray-300"
+                      onClick={() => navigate('/call-history')}
+                    >
+                      <BarChart3 className="h-5 w-5" />
+                      <div className="text-left">
+                        <div className="font-medium">All Analytics</div>
+                        <div className="text-sm text-gray-500">Complete overview</div>
+                      </div>
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -883,51 +971,94 @@ const SalesDashboard = () => {
 
           {/* Messages */}
           <motion.div variants={itemVariants} className="mt-8" data-messages-section>
-            <Card className="border-2 border-blue-200 bg-blue-50">
+            <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-0 shadow-lg">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-blue-700">
-                  <Clock className="h-5 w-5" />
-                  💬 Team Messages
+                <CardTitle className="flex items-center gap-2 text-xl text-green-700">
+                  <Phone className="h-6 w-6" />
+                  💬 Messages
                   {inbox.length > 0 && (
                     <Badge variant="destructive" className="ml-2">
                       {inbox.length} new
                     </Badge>
                   )}
                 </CardTitle>
-                <CardDescription className="text-blue-600">
+                <CardDescription className="text-green-600">
                   Communicate with your team for follow-ups and support
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-3 max-h-60 overflow-auto mb-4">
-                  {inbox.map(msg => (
-                    <div key={msg.id} className="text-sm">
-                      <span className="font-medium">{msg.sender_name || 'User'}</span>: {msg.body}
-                      <span className="text-xs text-gray-500 ml-2">{new Date(msg.created_at).toLocaleString()}</span>
-                    </div>
-                  ))}
-                  {inbox.length === 0 && (
-                    <div className="text-sm text-gray-600">No messages yet.</div>
-                  )}
+              <CardContent className="space-y-6">
+                {/* Message History */}
+                <div className="bg-white rounded-xl p-6 shadow-sm border">
+                  <h4 className="font-semibold mb-4 text-lg text-gray-800">Recent Messages</h4>
+                  <div className="space-y-3 max-h-80 overflow-auto">
+                    {inbox.map(msg => (
+                      <div key={msg.id} className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                              {(msg.sender_name || 'U').charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <span className="font-medium text-gray-900">{msg.sender_name || 'User'}</span>
+                              <span className="text-gray-500 ml-2 text-sm">to {msg.recipient_id === user?.id ? 'You' : 'Team'}</span>
+                            </div>
+                          </div>
+                          <span className="text-xs text-gray-400">{new Date(msg.created_at).toLocaleString()}</span>
+                        </div>
+                        <div className="text-gray-700 ml-10">{msg.body}</div>
+                      </div>
+                    ))}
+                    {inbox.length === 0 && (
+                      <div className="text-center py-8">
+                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <Phone className="h-8 w-8 text-gray-400" />
+                        </div>
+                        <p className="text-gray-500 text-lg">No messages yet</p>
+                        <p className="text-gray-400 text-sm">Start a conversation with your team!</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Select value={selectedRecipient} onValueChange={setSelectedRecipient}>
-                    <SelectTrigger className="w-64">
-                      <SelectValue placeholder="Select recipient" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {recipients.map(r => (
-                        <SelectItem key={r.id} value={r.id}>{r.full_name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Textarea
-                    placeholder="Type a message"
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    className="min-h-[44px] flex-1"
-                  />
-                  <Button onClick={sendMessage} disabled={!selectedRecipient || !newMessage.trim()}>Send</Button>
+
+                {/* Send Message */}
+                <div className="bg-white rounded-xl p-6 shadow-sm border">
+                  <h4 className="font-semibold mb-4 text-lg text-gray-800">Send Message</h4>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <Select value={selectedRecipient} onValueChange={setSelectedRecipient}>
+                        <SelectTrigger className="w-80 h-12">
+                          <SelectValue placeholder="Select recipient" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {recipients.map(r => (
+                            <SelectItem key={r.id} value={r.id}>
+                              <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-xs font-medium">
+                                  {r.full_name.charAt(0).toUpperCase()}
+                                </div>
+                                {r.full_name}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-end gap-3">
+                      <Textarea
+                        placeholder="Type your message here..."
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        className="min-h-[100px] flex-1 resize-none"
+                      />
+                      <Button 
+                        onClick={sendMessage} 
+                        disabled={!selectedRecipient || !newMessage.trim()}
+                        className="h-12 px-6 bg-green-600 hover:bg-green-700"
+                      >
+                        Send
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>

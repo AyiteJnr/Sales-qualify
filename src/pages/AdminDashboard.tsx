@@ -778,22 +778,39 @@ const AdminDashboard = () => {
 
           {/* Main Content */}
           <div>
-            {/* Header with Messages Button */}
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-                <p className="text-gray-600">Manage your sales team and track performance</p>
+            {/* Enterprise Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl p-6 mb-8 text-white shadow-xl">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
+                  <p className="text-blue-100 text-lg">Comprehensive sales management and analytics platform</p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <div className="text-2xl font-bold">{stats.totalLeads}</div>
+                    <div className="text-blue-200 text-sm">Total Leads</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold">{stats.totalCalls}</div>
+                    <div className="text-blue-200 text-sm">Total Calls</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold">{stats.hotDeals}</div>
+                    <div className="text-blue-200 text-sm">Hot Deals</div>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-3">
+              
+              {/* Action Buttons */}
+              <div className="flex items-center gap-3 mt-6">
                 <Button 
-                  variant="outline" 
                   onClick={() => {
                     const messagesTab = document.querySelector('[value="messages"]') as HTMLElement;
                     if (messagesTab) messagesTab.click();
                   }}
-                  className="bg-blue-500 hover:bg-blue-600 text-white border-blue-500"
+                  className="bg-white text-blue-600 hover:bg-blue-50 border-0 shadow-lg"
                 >
-                  💬 Team Messages
+                  💬 Messages
                   {inbox.length > 0 && (
                     <Badge variant="destructive" className="ml-2">
                       {inbox.length}
@@ -803,22 +820,30 @@ const AdminDashboard = () => {
                 <Button 
                   variant="outline"
                   onClick={() => navigate('/call-history')}
-                  className="flex items-center gap-2"
+                  className="bg-transparent border-white text-white hover:bg-white hover:text-blue-600"
                 >
-                  <Phone className="h-4 w-4" />
-                  View All Analytics
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  View Analytics
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => navigate('/leads-management')}
+                  className="bg-transparent border-white text-white hover:bg-white hover:text-blue-600"
+                >
+                  <Users className="h-4 w-4 mr-2" />
+                  Manage Leads
                 </Button>
               </div>
             </div>
 
             <Tabs defaultValue="overview" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-6">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="hot-deals">Hot Deals</TabsTrigger>
-                <TabsTrigger value="performance">Performance</TabsTrigger>
-                <TabsTrigger value="leads">Lead Management</TabsTrigger>
-                <TabsTrigger value="integrations">Integrations</TabsTrigger>
-                <TabsTrigger value="settings">Settings</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-6 bg-gray-100 p-1 rounded-lg">
+                <TabsTrigger value="overview" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Overview</TabsTrigger>
+                <TabsTrigger value="deals" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Deals</TabsTrigger>
+                <TabsTrigger value="performance" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Performance</TabsTrigger>
+                <TabsTrigger value="leads" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Lead Management</TabsTrigger>
+                <TabsTrigger value="integrations" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Integrations</TabsTrigger>
+                <TabsTrigger value="settings" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Settings</TabsTrigger>
               </TabsList>
 
               <TabsContent value="overview" className="space-y-6">
@@ -1153,84 +1178,144 @@ const AdminDashboard = () => {
                 </CardContent>
               </Card>
 
-                  {/* Analytics & Actions */}
-                  <Card>
+                  {/* Analytics & Performance Overview */}
+                  <Card className="bg-gradient-to-br from-slate-50 to-blue-50 border-0 shadow-lg">
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <BarChart3 className="h-5 w-5" />
-                        Analytics & Actions
+                      <CardTitle className="flex items-center gap-2 text-xl">
+                        <BarChart3 className="h-6 w-6 text-blue-600" />
+                        Analytics & Performance
                       </CardTitle>
-                      <CardDescription>
-                        Comprehensive analytics and quick actions
+                      <CardDescription className="text-gray-600">
+                        Comprehensive analytics and performance insights
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      {/* Analytics Buttons */}
+                      {/* Performance Metrics Grid */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div className="bg-white rounded-lg p-4 shadow-sm border">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm text-gray-600">Conversion Rate</p>
+                              <p className="text-2xl font-bold text-green-600">{stats.conversionRate}%</p>
+                            </div>
+                            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                              <TrendingUp className="h-6 w-6 text-green-600" />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="bg-white rounded-lg p-4 shadow-sm border">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm text-gray-600">Avg Score</p>
+                              <p className="text-2xl font-bold text-blue-600">{stats.avgScore}</p>
+                            </div>
+                            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                              <Target className="h-6 w-6 text-blue-600" />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="bg-white rounded-lg p-4 shadow-sm border">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm text-gray-600">Hot Deals</p>
+                              <p className="text-2xl font-bold text-red-600">{stats.hotDeals}</p>
+                            </div>
+                            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                              <Star className="h-6 w-6 text-red-600" />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="bg-white rounded-lg p-4 shadow-sm border">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm text-gray-600">Total Calls</p>
+                              <p className="text-2xl font-bold text-purple-600">{stats.totalCalls}</p>
+                            </div>
+                            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                              <Phone className="h-6 w-6 text-purple-600" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Deal Analytics */}
                       <div className="mb-6">
-                        <h4 className="font-medium mb-3 text-gray-700">Deal Analytics</h4>
+                        <h4 className="font-semibold mb-4 text-gray-800 text-lg">Deal Analytics</h4>
                         <div className="grid grid-cols-2 gap-3">
                           <Button 
                             variant="outline" 
-                            className="h-12 flex items-center gap-2 justify-start"
+                            className="h-14 flex items-center gap-3 justify-start border-red-200 hover:bg-red-50 hover:border-red-300"
                             onClick={() => navigate('/call-history?filter=hot')}
                           >
-                            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                            Hot Deals Analytics
+                            <div className="w-4 h-4 bg-red-500 rounded-full"></div>
+                            <div className="text-left">
+                              <div className="font-medium">Hot Deals</div>
+                              <div className="text-sm text-gray-500">High priority leads</div>
+                            </div>
                           </Button>
                           <Button 
                             variant="outline" 
-                            className="h-12 flex items-center gap-2 justify-start"
+                            className="h-14 flex items-center gap-3 justify-start border-yellow-200 hover:bg-yellow-50 hover:border-yellow-300"
                             onClick={() => navigate('/call-history?filter=warm')}
                           >
-                            <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                            Warm Deals Analytics
+                            <div className="w-4 h-4 bg-yellow-500 rounded-full"></div>
+                            <div className="text-left">
+                              <div className="font-medium">Warm Deals</div>
+                              <div className="text-sm text-gray-500">Medium priority leads</div>
+                            </div>
                           </Button>
                           <Button 
                             variant="outline" 
-                            className="h-12 flex items-center gap-2 justify-start"
+                            className="h-14 flex items-center gap-3 justify-start border-blue-200 hover:bg-blue-50 hover:border-blue-300"
                             onClick={() => navigate('/call-history?filter=cold')}
                           >
-                            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                            Cold Deals Analytics
+                            <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
+                            <div className="text-left">
+                              <div className="font-medium">Cold Deals</div>
+                              <div className="text-sm text-gray-500">Low priority leads</div>
+                            </div>
                           </Button>
                           <Button 
                             variant="outline" 
-                            className="h-12 flex items-center gap-2 justify-start"
+                            className="h-14 flex items-center gap-3 justify-start border-gray-200 hover:bg-gray-50 hover:border-gray-300"
                             onClick={() => navigate('/call-history')}
                           >
-                            <BarChart3 className="h-4 w-4" />
-                            All Analytics
+                            <BarChart3 className="h-5 w-5" />
+                            <div className="text-left">
+                              <div className="font-medium">All Analytics</div>
+                              <div className="text-sm text-gray-500">Complete overview</div>
+                            </div>
                           </Button>
                         </div>
                       </div>
                       
                       {/* Quick Actions */}
                       <div className="border-t pt-4">
-                        <h4 className="font-medium mb-3 text-gray-700">Quick Actions</h4>
+                        <h4 className="font-semibold mb-4 text-gray-800 text-lg">Quick Actions</h4>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <Button 
                             variant="outline" 
-                            className="h-16 flex-col gap-2"
+                            className="h-16 flex-col gap-2 hover:bg-blue-50 hover:border-blue-300"
                             onClick={() => navigate('/call-history')}
                           >
                             <FileText className="h-5 w-5" />
-                            Full Call History
+                            <span className="font-medium">Call History</span>
                           </Button>
                           <Button 
                             variant="outline" 
-                            className="h-16 flex-col gap-2"
+                            className="h-16 flex-col gap-2 hover:bg-green-50 hover:border-green-300"
                             onClick={() => navigate('/leads-management')}
                           >
                             <Users className="h-5 w-5" />
-                            Manage All Leads
+                            <span className="font-medium">Manage Leads</span>
                           </Button>
                           <Button 
                             variant="outline" 
-                            className="h-16 flex-col gap-2"
+                            className="h-16 flex-col gap-2 hover:bg-purple-50 hover:border-purple-300"
                             onClick={() => navigate('/admin')}
                           >
                             <Settings className="h-5 w-5" />
-                            Admin Settings
+                            <span className="font-medium">Settings</span>
                           </Button>
                         </div>
                       </div>
@@ -1515,64 +1600,88 @@ const AdminDashboard = () => {
               </TabsContent>
 
               <TabsContent value="messages" className="space-y-6">
-                <Card>
+                <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-0 shadow-lg">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Phone className="h-5 w-5" />
-                      Team Messages
+                    <CardTitle className="flex items-center gap-2 text-xl">
+                      <Phone className="h-6 w-6 text-blue-600" />
+                      Messages
                     </CardTitle>
-                    <CardDescription>
-                      Send messages to team members and view conversation history
+                    <CardDescription className="text-gray-600">
+                      Communicate with your team members and view conversation history
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-6">
                     {/* Message History */}
-                    <div className="border rounded-lg p-4">
-                      <h4 className="font-semibold mb-3">Recent Messages</h4>
-                      <div className="space-y-2 max-h-64 overflow-auto">
+                    <div className="bg-white rounded-xl p-6 shadow-sm border">
+                      <h4 className="font-semibold mb-4 text-lg text-gray-800">Recent Messages</h4>
+                      <div className="space-y-3 max-h-80 overflow-auto">
                         {inbox.map(msg => (
-                          <div key={msg.id} className="text-sm p-2 bg-gray-50 rounded">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <span className="font-medium text-blue-600">{msg.sender_name || 'User'}</span>
-                                <span className="text-gray-500 ml-2">to {msg.recipient_id === profile?.id ? 'You' : 'Team'}</span>
+                          <div key={msg.id} className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                                  {(msg.sender_name || 'U').charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                  <span className="font-medium text-gray-900">{msg.sender_name || 'User'}</span>
+                                  <span className="text-gray-500 ml-2 text-sm">to {msg.recipient_id === profile?.id ? 'You' : 'Team'}</span>
+                                </div>
                               </div>
                               <span className="text-xs text-gray-400">{new Date(msg.created_at).toLocaleString()}</span>
                             </div>
-                            <div className="mt-1">{msg.body}</div>
+                            <div className="text-gray-700 ml-10">{msg.body}</div>
                           </div>
                         ))}
                         {inbox.length === 0 && (
-                          <div className="text-sm text-gray-500 text-center py-4">No messages yet. Start a conversation!</div>
+                          <div className="text-center py-8">
+                            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                              <Phone className="h-8 w-8 text-gray-400" />
+                            </div>
+                            <p className="text-gray-500 text-lg">No messages yet</p>
+                            <p className="text-gray-400 text-sm">Start a conversation with your team!</p>
+                          </div>
                         )}
                       </div>
                     </div>
 
                     {/* Send Message */}
-                    <div className="border rounded-lg p-4">
-                      <h4 className="font-semibold mb-3">Send Message</h4>
-                      <div className="flex items-center gap-2">
-                        <Select value={selectedRepForMsg} onValueChange={setSelectedRepForMsg}>
-                          <SelectTrigger className="w-64">
-                            <SelectValue placeholder="Select recipient" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {allUsers.filter(user => user.id !== profile?.id).map(user => (
-                              <SelectItem key={user.id} value={user.id}>
-                                {user.full_name} ({user.role})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Textarea
-                          placeholder="Type a message to the selected team member"
-                          value={newMessage}
-                          onChange={(e) => setNewMessage(e.target.value)}
-                          className="min-h-[44px] flex-1"
-                        />
-                        <Button onClick={sendMessage} disabled={!selectedRepForMsg || !newMessage.trim()}>
-                          Send
-                        </Button>
+                    <div className="bg-white rounded-xl p-6 shadow-sm border">
+                      <h4 className="font-semibold mb-4 text-lg text-gray-800">Send Message</h4>
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-3">
+                          <Select value={selectedRepForMsg} onValueChange={setSelectedRepForMsg}>
+                            <SelectTrigger className="w-80 h-12">
+                              <SelectValue placeholder="Select recipient" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {allUsers.filter(user => user.id !== profile?.id).map(user => (
+                                <SelectItem key={user.id} value={user.id}>
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-medium">
+                                      {user.full_name.charAt(0).toUpperCase()}
+                                    </div>
+                                    {user.full_name} ({user.role})
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex items-end gap-3">
+                          <Textarea
+                            placeholder="Type your message here..."
+                            value={newMessage}
+                            onChange={(e) => setNewMessage(e.target.value)}
+                            className="min-h-[100px] flex-1 resize-none"
+                          />
+                          <Button 
+                            onClick={sendMessage} 
+                            disabled={!selectedRepForMsg || !newMessage.trim()}
+                            className="h-12 px-6 bg-blue-600 hover:bg-blue-700"
+                          >
+                            Send
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
