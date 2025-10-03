@@ -113,16 +113,19 @@ const SalesDashboard = () => {
   // Load inbox and admins, subscribe to messages
   useEffect(() => {
     const loadRecipients = async () => {
+      console.log('Loading recipients for sales rep messaging...');
       const { data, error } = await supabase.from('profiles').select('id, full_name');
       if (error) {
         console.error('Load recipients error:', error);
       }
       const list = (data || []).filter(u => u.id !== user?.id);
+      console.log('Recipients loaded:', list);
       setRecipients(list);
       if (list.length > 0 && !selectedRecipient) setSelectedRecipient(list[0].id);
     };
     const loadInbox = async () => {
       if (!user?.id) return;
+      console.log('Loading initial inbox for sales rep:', user.id);
       let { data, error } = await supabase
         .from('messages')
         .select('id, body, sender_id, recipient_id, created_at, profiles:sender_id(full_name)')
@@ -139,6 +142,7 @@ const SalesDashboard = () => {
           .limit(20);
         data = fallback.data;
       }
+      console.log('Initial inbox data loaded (rep):', data);
       setInbox((data || []).map((m: any) => ({
         id: m.id,
         body: m.body,
@@ -157,24 +161,36 @@ const SalesDashboard = () => {
   }, [user?.id]);
 
   const sendMessage = async () => {
+    console.log('SalesDashboard sendMessage called with:', { selectedRecipient, newMessage: newMessage.trim(), userId: user?.id });
     if (!selectedRecipient || !newMessage.trim() || !user?.id) {
       console.log('Missing information for message:', { selectedRecipient, newMessage: newMessage.trim(), userId: user?.id });
+      toast({ title: "Missing information", description: "Please select a recipient and enter a message.", variant: "destructive" });
       return;
     }
     try {
+      console.log('Attempting to send message to database...');
       const { error } = await supabase.from('messages').insert({
         sender_id: user.id,
         recipient_id: selectedRecipient,
         body: newMessage.trim()
       });
-      if (error) throw error;
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
+      console.log('Message sent successfully');
       setNewMessage('');
       // Show success feedback
       const recipientName = recipients.find(r => r.id === selectedRecipient)?.full_name || 'recipient';
       console.log(`Message sent to ${recipientName}`);
+      toast({
+        title: "Message Sent",
+        description: `Your message has been sent to ${recipientName}.`,
+      });
       // Refresh inbox to show sent message
       const loadInbox = async () => {
         if (!user?.id) return;
+        console.log('Loading inbox for sales rep:', user.id);
         let { data, error } = await supabase
           .from('messages')
           .select('id, body, sender_id, recipient_id, created_at, profiles:sender_id(full_name)')
@@ -191,6 +207,7 @@ const SalesDashboard = () => {
             .limit(20);
           data = fallback.data;
         }
+        console.log('Inbox data loaded (rep):', data);
         setInbox((data || []).map((m: any) => ({
           id: m.id,
           body: m.body,

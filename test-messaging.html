@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messaging System Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        input, textarea { width: 100%; padding: 8px; margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Messaging System Test</h1>
+    
+    <div class="test-section info">
+        <h3>📋 Test Instructions</h3>
+        <p>This test verifies the messaging functionality between Admin and Sales dashboards:</p>
+        <ol>
+            <li><strong>Admin Dashboard Test:</strong>
+                <ul>
+                    <li>Login as admin (admin@salesqualify.com)</li>
+                    <li>Click the "Messages" button in the top right corner</li>
+                    <li>Select a sales rep from the dropdown</li>
+                    <li>Type a message and click "Send"</li>
+                    <li>Verify message appears in the inbox</li>
+                </ul>
+            </li>
+            <li><strong>Sales Dashboard Test:</strong>
+                <ul>
+                    <li>Login as a sales rep</li>
+                    <li>Click the "Messages" button in the top right corner</li>
+                    <li>Verify you can see the message from admin</li>
+                    <li>Select admin from the dropdown</li>
+                    <li>Type a reply and click "Send"</li>
+                    <li>Verify reply appears in both dashboards</li>
+                </ul>
+            </li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h3>🔍 Expected Behavior</h3>
+        <ul>
+            <li>✅ Messages button appears in top right corner of both dashboards</li>
+            <li>✅ Message count badge shows unread messages</li>
+            <li>✅ Admin can select any user from dropdown</li>
+            <li>✅ Sales rep can select any user from dropdown</li>
+            <li>✅ Messages are sent and received in real-time</li>
+            <li>✅ Message history is preserved</li>
+            <li>✅ Integrations moved to Settings tab</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h3>🐛 Common Issues to Check</h3>
+        <ul>
+            <li>❌ Messages button not visible in header</li>
+            <li>❌ Message count badge not updating</li>
+            <li>❌ Recipient dropdown empty or not loading</li>
+            <li>❌ Messages not sending (check console for errors)</li>
+            <li>❌ Messages not appearing in inbox</li>
+            <li>❌ Real-time updates not working</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h3>🔧 Debug Information</h3>
+        <p>If messaging doesn't work, check:</p>
+        <ul>
+            <li>Browser console for JavaScript errors</li>
+            <li>Network tab for failed API requests</li>
+            <li>Supabase database for messages table</li>
+            <li>User authentication status</li>
+            <li>Database permissions and RLS policies</li>
+        </ul>
+    </div>
+
+    <div class="test-section success">
+        <h3>✅ Test Complete</h3>
+        <p>If all tests pass, the messaging system is working correctly!</p>
+        <p><strong>Next Steps:</strong> Test the full workflow by sending messages between admin and sales rep accounts.</p>
+    </div>
+
+    <script>
+        console.log('🧪 Messaging System Test Page Loaded');
+        console.log('📋 Follow the test instructions above to verify messaging functionality');
+        console.log('🔍 Check browser console for any errors during testing');
+    </script>
+</body>
+</html>

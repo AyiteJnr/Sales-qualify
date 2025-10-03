@@ -173,6 +173,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     if (profile?.role !== 'admin' || !profile?.id) return;
     const loadInbox = async () => {
+      console.log('Loading inbox for admin:', profile.id);
       const { data, error } = await supabase
         .from('messages')
         .select('id, body, sender_id, recipient_id, created_at, profiles:sender_id(full_name)')
@@ -183,6 +184,7 @@ const AdminDashboard = () => {
         console.error('Inbox load error (admin):', error);
         return;
       }
+      console.log('Inbox data loaded (admin):', data);
       setInbox((data || []).map((m: any) => ({
         id: m.id,
         body: m.body,
@@ -200,17 +202,24 @@ const AdminDashboard = () => {
   }, [profile?.id, profile?.role]);
 
   const sendMessage = async () => {
+    console.log('sendMessage called with:', { selectedRepForMsg, newMessage: newMessage.trim(), profileId: profile?.id });
     if (!selectedRepForMsg || !newMessage.trim() || !profile?.id) {
+      console.log('Missing information for message');
       toast({ title: "Missing information", description: "Please select a recipient and enter a message.", variant: "destructive" });
       return;
     }
     try {
+      console.log('Attempting to send message to database...');
       const { error } = await supabase.from('messages').insert({
         sender_id: profile.id,
         recipient_id: selectedRepForMsg,
         body: newMessage.trim()
       });
-      if (error) throw error;
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
+      console.log('Message sent successfully');
       setNewMessage('');
       setSelectedRepForMsg('');
       toast({
@@ -456,10 +465,13 @@ const AdminDashboard = () => {
   const fetchAllUsers = async () => {
     setUsersLoading(true);
     try {
+      console.log('Fetching all users for messaging...');
       const { data, error } = await supabase.from('profiles').select('*').order('full_name');
       if (error) throw error;
+      console.log('Users loaded:', data);
       setAllUsers(data || []);
     } catch (error) {
+      console.error('Error fetching users:', error);
       toast({ title: 'Error', description: 'Failed to fetch users', variant: 'destructive' });
     } finally {
       setUsersLoading(false);
@@ -798,11 +810,12 @@ const AdminDashboard = () => {
           <div>
 
             <Tabs defaultValue="overview" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-5 bg-gray-100 p-1 rounded-lg">
+              <TabsList className="grid w-full grid-cols-6 bg-gray-100 p-1 rounded-lg">
                 <TabsTrigger value="overview" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Overview</TabsTrigger>
                 <TabsTrigger value="deals" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Deals</TabsTrigger>
                 <TabsTrigger value="performance" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Performance</TabsTrigger>
                 <TabsTrigger value="leads" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Lead Management</TabsTrigger>
+                <TabsTrigger value="messages" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">💬 Messages</TabsTrigger>
                 <TabsTrigger value="settings" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Settings</TabsTrigger>
               </TabsList>
 
