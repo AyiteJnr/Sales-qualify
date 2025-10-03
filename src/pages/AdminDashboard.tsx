@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -81,7 +80,7 @@ interface CallRecord {
   clients: {
     full_name: string;
     company_name: string | null;
-    deal_value: number | null;
+    deal_value?: number | null;
   } | null;
   profiles: {
     full_name: string;
@@ -148,6 +147,7 @@ const AdminDashboard = () => {
   const [followUpMessage, setFollowUpMessage] = useState('');
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [initialLoaded, setInitialLoaded] = useState(false);
 
   useEffect(() => {
     console.log('AdminDashboard useEffect - profile:', profile);
@@ -188,29 +188,22 @@ const AdminDashboard = () => {
           description: "Updating dashboard with latest information...",
         });
       }
-      setLoading(true);
+      if (!initialLoaded) setLoading(true);
       console.log('Fetching dashboard data at:', new Date().toISOString());
       
-      // Use the new dashboard stats function for better performance
-      const { data: statsData, error: statsError } = await supabase
-        .rpc('get_dashboard_stats', { p_user_id: user?.id });
+      // Use basic queries for reliability
+      const { count: leadsCount } = await supabase
+        .from('clients')
+        .select('*', { count: 'exact', head: true });
 
-      if (statsError) {
-        console.warn('Stats function error, falling back to individual queries:', statsError);
-        
-        // Fallback to individual queries
-        const { count: leadsCount } = await supabase
-          .from('clients')
-          .select('*', { count: 'exact', head: true });
+      const { count: callsCount } = await supabase
+        .from('call_records')
+        .select('*', { count: 'exact', head: true });
 
-        const { count: callsCount } = await supabase
-          .from('call_records')
-          .select('*', { count: 'exact', head: true });
-
-        const { count: completedCallsCount } = await supabase
-          .from('call_records')
-          .select('*', { count: 'exact', head: true })
-          .eq('qualification_status', 'hot');
+      const { count: completedCallsCount } = await supabase
+        .from('call_records')
+        .select('*', { count: 'exact', head: true })
+        .eq('qualification_status', 'hot');
 
       // Fetch rep performance
       const { data: repsData } = await supabase
@@ -266,15 +259,21 @@ const AdminDashboard = () => {
         user: call.profiles?.full_name || 'Unknown'
       })) || [];
 
-      // Fetch detailed call records for hot deals with enhanced error handling
+      // Fetch detailed call records with basic fields to avoid column errors
       const { data: detailedCallRecords, error: callRecordsError } = await supabase
         .from('call_records')
         .select(`
-          *,
+          id,
+          client_id,
+          rep_id,
+          call_timestamp,
+          score,
+          qualification_status,
+          next_action,
+          comments,
           clients (
             full_name,
             company_name,
-            deal_value,
             email,
             phone
           ),
@@ -283,20 +282,21 @@ const AdminDashboard = () => {
             email
           )
         `)
-        .order('call_timestamp', { ascending: false });
+        .order('call_timestamp', { ascending: false })
+        .limit(50); // Limit for performance
 
       if (callRecordsError) {
         console.error('Error fetching call records:', callRecordsError);
-        // Don't throw error, just log and continue with empty records
-        console.warn('Continuing with empty call records due to error');
         setCallRecords([]);
       } else {
         console.log('Fetched call records:', detailedCallRecords?.length || 0);
-        // Ensure hot deal flags are properly set
+        // Process records and set hot deal flags based on available data
         const processedRecords = (detailedCallRecords || []).map(record => ({
           ...record,
-          is_hot_deal: record.is_hot_deal || record.qualification_status === 'hot' || record.score >= 80,
-          follow_up_required: record.follow_up_required || record.qualification_status === 'hot' || record.score >= 70
+          is_hot_deal: record.qualification_status === 'hot' || (record.score && record.score >= 80),
+          follow_up_required: record.qualification_status === 'hot' || (record.score && record.score >= 70),
+          call_duration: 0, // Default value
+          answers: {} // Default empty answers
         }));
         setCallRecords(processedRecords as unknown as CallRecord[]);
       }
@@ -307,47 +307,38 @@ const AdminDashboard = () => {
           )
         : null;
 
-        // Continue with existing logic for fallback case
-        const newStats = {
-          totalLeads: leadsCount || 0,
-          totalCalls: callsCount || 0,
-          completedCalls: completedCallsCount || 0,
-          conversionRate: callsCount ? ((completedCallsCount || 0) / callsCount) * 100 : 0,
-          avgCallDuration: 0,
-          topPerformer: topPerformerObj ? `${topPerformerObj.name} (${topPerformerObj.conversionRate.toFixed(1)}%)` : 'N/A',
-          recentActivity: activityData.length
-        };
-      } else {
-        // Use stats from RPC function if available
-        const newStats = {
-          totalLeads: statsData.total_leads || 0,
-          totalCalls: statsData.total_calls || 0,
-          completedCalls: statsData.hot_deals || 0,
-          conversionRate: statsData.conversion_rate || 0,
-          avgCallDuration: 0,
-          topPerformer: topPerformerObj ? `${topPerformerObj.name} (${topPerformerObj.conversionRate.toFixed(1)}%)` : 'N/A',
-          recentActivity: activityData.length
-        };
-      }
+      // Calculate stats from fetched data
+      const newStats = {
+        totalLeads: leadsCount || 0,
+        totalCalls: callsCount || 0,
+        completedCalls: completedCallsCount || 0,
+        conversionRate: callsCount ? ((completedCallsCount || 0) / callsCount) * 100 : 0,
+        avgCallDuration: 0,
+        topPerformer: topPerformerObj ? `${topPerformerObj.name} (${topPerformerObj.conversionRate.toFixed(1)}%)` : 'N/A',
+        recentActivity: activityData.length
+      };
 
       setStats(newStats);
       setRepPerformance(performanceData);
       setRecentActivity(activityData);
       setLastRefresh(new Date());
+      if (!initialLoaded) setInitialLoaded(true);
 
       if (showToast) {
-        const hotDealsCount = callRecords.filter(r => r.is_hot_deal || r.qualification_status === 'hot').length;
+        const hotDealsCount = (detailedCallRecords || []).filter(r => 
+          r.qualification_status === 'hot' || (r.score && r.score >= 80)
+        ).length;
         toast({
           title: "✅ Dashboard Updated",
-          description: `Found ${hotDealsCount} hot deals. Real-time data refreshed.`,
+          description: `Found ${hotDealsCount} hot deals. Data refreshed successfully.`,
         });
       }
 
       console.log('Dashboard data updated successfully:', {
-        hotDeals: callRecords.filter(r => r.is_hot_deal || r.qualification_status === 'hot').length,
+        hotDeals: (detailedCallRecords || []).filter(r => r.qualification_status === 'hot' || (r.score && r.score >= 80)).length,
         totalCalls: newStats.totalCalls,
         totalLeads: newStats.totalLeads,
-        statsSource: statsData ? 'rpc_function' : 'individual_queries'
+        callRecords: detailedCallRecords?.length || 0
       });
 
     } catch (error) {
@@ -358,7 +349,7 @@ const AdminDashboard = () => {
         variant: "destructive"
       });
     } finally {
-      setLoading(false);
+      if (!initialLoaded) setLoading(false);
     }
   };
 
@@ -590,58 +581,28 @@ const AdminDashboard = () => {
     }
   };
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        duration: 0.5
-      }
-    }
-  };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <motion.div 
-          className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-        />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <motion.div 
-          className="flex items-center justify-between mb-8"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
+        <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-            <p className="text-gray-600">Welcome back, {profile?.full_name}</p>
+            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+            <p className="text-muted-foreground">Welcome back, {profile?.full_name}</p>
           </div>
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
               onClick={() => fetchDashboardData(true)}
-              className="text-gray-600"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
@@ -649,89 +610,72 @@ const AdminDashboard = () => {
             <Button
               variant="outline"
               onClick={() => signOut()}
-              className="text-gray-600"
             >
               Sign Out
             </Button>
           </div>
-        </motion.div>
+        </div>
 
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
+        <div>
           {/* Stats Overview */}
-          <motion.div 
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
-            variants={itemVariants}
-          >
-            <Card className="hover:shadow-lg transition-all duration-300">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <Card>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Total Leads</p>
-                    <p className="text-3xl font-bold text-gray-900">{stats.totalLeads}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Total Leads</p>
+                    <p className="text-3xl font-bold">{stats.totalLeads}</p>
                   </div>
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Users className="h-6 w-6 text-blue-600" />
-                  </div>
+                  <Users className="h-8 w-8 text-muted-foreground" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-lg transition-all duration-300">
+            <Card>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Total Calls</p>
-                    <p className="text-3xl font-bold text-gray-900">{stats.totalCalls}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Total Calls</p>
+                    <p className="text-3xl font-bold">{stats.totalCalls}</p>
                   </div>
-                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                    <Phone className="h-6 w-6 text-green-600" />
-                  </div>
+                  <Phone className="h-8 w-8 text-muted-foreground" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-lg transition-all duration-300">
+            <Card>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Conversion Rate</p>
-                    <p className="text-3xl font-bold text-gray-900">{stats.conversionRate.toFixed(1)}%</p>
+                    <p className="text-sm font-medium text-muted-foreground">Conversion Rate</p>
+                    <p className="text-3xl font-bold">{stats.conversionRate.toFixed(1)}%</p>
                   </div>
-                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <TrendingUp className="h-6 w-6 text-purple-600" />
-                  </div>
+                  <TrendingUp className="h-8 w-8 text-muted-foreground" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-lg transition-all duration-300">
+            <Card>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Top Performer</p>
-                    <p className="text-lg font-bold text-gray-900 truncate">{stats.topPerformer}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Top Performer</p>
+                    <p className="text-lg font-bold truncate">{stats.topPerformer}</p>
                   </div>
-                  <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                    <Award className="h-6 w-6 text-yellow-600" />
-                  </div>
+                  <Award className="h-8 w-8 text-muted-foreground" />
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
 
           {/* Main Content */}
-          <motion.div variants={itemVariants}>
+          <div>
             <Tabs defaultValue="overview" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-7">
+              <TabsList className="grid w-full grid-cols-6">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="hot-deals" className="text-red-600 data-[state=active]:bg-red-100 data-[state=active]:text-red-700">🔥 Hot Deals</TabsTrigger>
+                <TabsTrigger value="hot-deals">Hot Deals</TabsTrigger>
                 <TabsTrigger value="performance">Performance</TabsTrigger>
-                <TabsTrigger value="leads">Leads Management</TabsTrigger>
-                <TabsTrigger value="activity">Activity</TabsTrigger>
+                <TabsTrigger value="leads">Lead Management</TabsTrigger>
                 <TabsTrigger value="integrations">Integrations</TabsTrigger>
                 <TabsTrigger value="settings">Settings</TabsTrigger>
               </TabsList>
@@ -878,107 +822,69 @@ const AdminDashboard = () => {
               <TabsContent value="hot-deals" className="space-y-6">
                 <div className="grid gap-6">
                   {/* Hot Deals Header */}
-                  <Card className="border border-muted bg-muted dark:bg-slate-900">
+                  <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-slate-800 dark:text-slate-100">
-                        <span className="text-2xl">🔥</span>
+                      <CardTitle className="flex items-center gap-2">
+                        <TrendingUp className="h-5 w-5 text-red-600" />
                         Hot Deals Dashboard
-                        <Badge className="bg-red-600 text-white animate-pulse">
+                        <Badge variant="destructive">
                           {callRecords.filter(r => r.qualification_status === 'hot' || r.is_hot_deal).length} Active
                         </Badge>
-                        <div className="flex items-center gap-2 ml-auto">
-                          <Badge variant="outline" className="text-xs">
-                            Last updated: {lastRefresh.toLocaleTimeString()}
-                          </Badge>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              fetchDashboardData(true);
-                            }}
-                            className="h-8 w-8 p-0"
-                          >
-                            <RefreshCw className="h-4 w-4" />
-                          </Button>
-                        </div>
                       </CardTitle>
-                      <CardDescription className="text-slate-600 dark:text-slate-400">
+                      <CardDescription>
                         Monitor and manage high-priority leads that require immediate attention
                       </CardDescription>
-                      <div className="flex items-center gap-4 mt-4">
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            id="autoRefresh"
-                            checked={autoRefresh}
-                            onChange={(e) => setAutoRefresh(e.target.checked)}
-                            className="rounded"
-                          />
-                          <label htmlFor="autoRefresh" className="text-sm text-slate-600">
-                            Auto-refresh every 30s
-                          </label>
-                        </div>
-                        <Badge variant="secondary" className="text-xs">
-                          {autoRefresh ? '🟢 Live' : '🔴 Manual'}
-                        </Badge>
-                      </div>
                     </CardHeader>
                   </Card>
 
                   {/* Hot Deals Actions */}
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <Card className="border-blue-200 bg-white dark:bg-slate-800">
+                    <Card>
                       <CardContent className="pt-6 text-center">
-                        <div className="text-3xl font-bold text-blue-600">
+                        <div className="text-2xl font-bold text-red-600">
                           {callRecords.filter(r => r.qualification_status === 'hot').length}
                         </div>
-                        <p className="text-sm text-muted-foreground">Hot Leads Today</p>
+                        <p className="text-sm text-muted-foreground">Hot Leads</p>
                       </CardContent>
                     </Card>
-                    <Card className="border-green-200 bg-white dark:bg-slate-800">
+                    <Card>
                       <CardContent className="pt-6 text-center">
-                        <div className="text-3xl font-bold text-green-600">
-                          {callRecords.filter(r => r.is_hot_deal).length}
-                        </div>
-                        <p className="text-sm text-muted-foreground">Flagged Deals</p>
-                      </CardContent>
-                    </Card>
-                    <Card className="border-orange-200 bg-white dark:bg-slate-800">
-                      <CardContent className="pt-6 text-center">
-                        <div className="text-3xl font-bold text-orange-600">
+                        <div className="text-2xl font-bold text-orange-600">
                           {callRecords.filter(r => r.follow_up_required).length}
                         </div>
-                        <p className="text-sm text-muted-foreground">Follow-ups Pending</p>
+                        <p className="text-sm text-muted-foreground">Follow-ups</p>
                       </CardContent>
                     </Card>
-                    <Card className="border-slate-200 bg-white dark:bg-slate-800">
-                      <CardContent className="pt-6 text-center space-y-2">
+                    <Card>
+                      <CardContent className="pt-6 text-center">
                         <Button 
-                          className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
                           onClick={() => navigate('/call-history?hot=true')}
                           size="sm"
                         >
                           <FileText className="h-4 w-4 mr-2" />
-                          View All Hot Calls
+                          View Hot Calls
                         </Button>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-6 text-center">
                         <Button 
-                          className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
-                          onClick={() => navigate('/call-history?hot=true&analytics=true')}
+                          variant="outline"
+                          onClick={() => navigate('/call-history?analytics=true')}
                           size="sm"
                         >
-                          <TrendingUp className="h-4 w-4 mr-2" />
-                          View Analytics
+                          <BarChart3 className="h-4 w-4 mr-2" />
+                          Analytics
                         </Button>
                       </CardContent>
                     </Card>
                   </div>
 
                   {/* Hot Deals List */}
-                <Card className="border border-muted bg-white dark:bg-slate-900">
+                <Card>
                   <CardHeader>
                       <CardTitle className="flex items-center gap-2">
-                        <TrendingUp className="h-5 w-5 text-red-600" />
+                        <TrendingUp className="h-5 w-5" />
                         Active Hot Deals
                       </CardTitle>
                     <CardDescription>
@@ -997,20 +903,18 @@ const AdminDashboard = () => {
                           .filter(r => r.qualification_status === 'hot' || r.is_hot_deal)
                           .slice(0, 10)
                           .map((record) => (
-                            <div key={record.id} className="p-4 border border-slate-200 rounded-lg bg-slate-50 dark:bg-slate-800">
+                            <div key={record.id} className="p-4 border rounded-lg">
                               <div className="flex items-start justify-between">
                                 <div className="flex-1">
                                   <div className="flex items-center gap-3 mb-2">
-                                    <span className="text-lg">🔥</span>
-                                    <h4 className="font-semibold text-lg">
+                                    <h4 className="font-semibold">
                                       {record.clients?.full_name || 'Unknown Client'}
                                     </h4>
-                                    <Badge className="bg-red-600 text-white">
+                                    <Badge variant="destructive">
                                       Score: {record.score}/100
                                     </Badge>
                                     {record.follow_up_required && (
-                                      <Badge variant="destructive" className="animate-pulse">
-                                        <AlertCircle className="h-3 w-3 mr-1" />
+                                      <Badge variant="outline">
                                         Follow-up Required
                                       </Badge>
                                     )}
@@ -1105,15 +1009,13 @@ const AdminDashboard = () => {
                           ))}
                         
                         {callRecords.filter(r => r.qualification_status === 'hot' || r.is_hot_deal).length === 0 && !loading && (
-                          <div className="text-center py-12 bg-gradient-to-br from-slate-50 to-gray-100 rounded-lg border-2 border-dashed border-slate-300">
-                            <span className="text-4xl mb-4 block">🎯</span>
-                            <h3 className="text-lg font-semibold mb-2">No Hot Deals Yet</h3>
+                          <div className="text-center py-8">
+                            <h3 className="text-lg font-semibold mb-2">No Hot Deals</h3>
                             <p className="text-muted-foreground mb-4">
-                              Hot deals will appear here when leads score high and require immediate attention
+                              Hot deals will appear here when leads score high
                             </p>
-                            <Button onClick={() => navigate('/call-history?hot=true')}>
-                              <TrendingUp className="h-4 w-4 mr-2" />
-                              View All Hot Call History
+                            <Button variant="outline" onClick={() => navigate('/call-history')}>
+                              View Call History
                             </Button>
                           </div>
                         )}
@@ -1163,12 +1065,12 @@ const AdminDashboard = () => {
               </TabsContent>
 
               <TabsContent value="leads" className="space-y-6">
-                {/* Enhanced Lead Management & Assignment */}
-                <Card className="border-2 border-blue-200 dark:border-blue-800">
-                  <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950">
-                    <CardTitle className="text-blue-800 dark:text-blue-200">Advanced Lead Management & Assignment</CardTitle>
-                    <CardDescription className="text-blue-600 dark:text-blue-400">
-                      Import leads and assign them to specific sales representatives in real-time
+                {/* Lead Management & Assignment */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Lead Management & Assignment</CardTitle>
+                    <CardDescription>
+                      Import leads and assign them to specific sales representatives
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="pt-6">
@@ -1177,7 +1079,7 @@ const AdminDashboard = () => {
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <Button 
                           onClick={() => navigate('/leads-management')}
-                          className="h-20 flex-col gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                          className="h-20 flex-col gap-2"
                         >
                           <Users className="h-6 w-6" />
                           All Leads
@@ -1185,18 +1087,18 @@ const AdminDashboard = () => {
                         <Button 
                           variant="outline"
                           onClick={() => navigate('/client/new')}
-                          className="h-20 flex-col gap-2 border-green-300 hover:bg-green-50"
+                          className="h-20 flex-col gap-2"
                         >
-                          <Plus className="h-6 w-6 text-green-600" />
-                          Add Single Lead
+                          <Plus className="h-6 w-6" />
+                          Add Lead
                         </Button>
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button 
                               variant="outline"
-                              className="h-20 flex-col gap-2 border-purple-300 hover:bg-purple-50"
+                              className="h-20 flex-col gap-2"
                             >
-                              <Upload className="h-6 w-6 text-purple-600" />
+                              <Upload className="h-6 w-6" />
                               Bulk Import
                             </Button>
                           </DialogTrigger>
@@ -1374,9 +1276,9 @@ const AdminDashboard = () => {
                         <Button 
                           variant="outline"
                           onClick={() => navigate('/import/google-sheets')}
-                          className="h-20 flex-col gap-2 border-blue-300 hover:bg-blue-50"
+                          className="h-20 flex-col gap-2"
                         >
-                          <FileText className="h-6 w-6 text-blue-600" />
+                          <FileText className="h-6 w-6" />
                           Google Sheets
                         </Button>
                       </div>
@@ -1564,8 +1466,8 @@ const AdminDashboard = () => {
                 </Card>
               </TabsContent>
             </Tabs>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
       </div>
       <Dialog open={showUsersModal} onOpenChange={setShowUsersModal}>
         <DialogContent className="max-w-2xl">

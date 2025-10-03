@@ -76,6 +76,7 @@ const SalesDashboard = () => {
   const [myLeads, setMyLeads] = useState<MyLead[]>([]);
   const [recentCalls, setRecentCalls] = useState<RecentCall[]>([]);
   const [loading, setLoading] = useState(true);
+  const [initialLoaded, setInitialLoaded] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
@@ -90,7 +91,7 @@ const SalesDashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      setLoading(true);
+      if (!initialLoaded) setLoading(true);
       
       if (!user) return;
 
@@ -112,7 +113,7 @@ const SalesDashboard = () => {
           next_action,
           is_hot_deal,
           follow_up_required,
-          clients!client_id(full_name, company_name, deal_value)
+          clients!client_id(full_name, company_name)
         `)
         .eq('rep_id', user.id)
         .order('call_timestamp', { ascending: false });
@@ -171,11 +172,12 @@ const SalesDashboard = () => {
       }));
       
       setRecentCalls(processedCalls.slice(0, 10) || []);
+      if (!initialLoaded) setInitialLoaded(true);
 
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
-      setLoading(false);
+      if (!initialLoaded) setLoading(false);
     }
   };
 

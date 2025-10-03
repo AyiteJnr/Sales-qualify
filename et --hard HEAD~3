@@ -1,0 +1,271 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import N8NIntegration from '@/components/N8NIntegration';
+import { 
+  BarChart3, 
+  Users, 
+  Phone, 
+  TrendingUp, 
+  Settings, 
+  UserPlus,
+  FileText,
+  Calendar,
+  Target,
+  Award,
+  Activity,
+  ArrowLeft,
+  RefreshCw,
+  Download,
+  Filter,
+  Plus,
+  Upload,
+  Send,
+  Eye,
+  AlertCircle
+} from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import Papa from 'papaparse';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { format } from 'date-fns';
+
+interface DashboardStats {
+  totalLeads: number;
+  totalCalls: number;
+  completedCalls: number;
+  conversionRate: number;
+  avgCallDuration: number;
+  topPerformer: string;
+  recentActivity: number;
+}
+
+interface RepPerformance {
+  id: string;
+  name: string;
+  email: string;
+  totalCalls: number;
+  completedCalls: number;
+  conversionRate: number;
+  avgScore: number;
+}
+
+interface RecentActivity {
+  id: string;
+  type: 'call' | 'lead' | 'user';
+  description: string;
+  timestamp: string;
+  user: string;
+}
+
+interface CallRecord {
+  id: string;
+  client_id: string;
+  rep_id: string;
+  call_timestamp: string;
+  score: number;
+  qualification_status: string;
+  is_hot_deal: boolean;
+  follow_up_required: boolean;
+  next_action: string | null;
+  comments: string | null;
+  clients: {
+    full_name: string;
+    company_name: string | null;
+    deal_value: number | null;
+  } | null;
+  profiles: {
+    full_name: string;
+    email: string;
+  } | null;
+}
+
+const AdminDashboard = () => {
+  const { user, profile, signOut } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [stats, setStats] = useState<DashboardStats>({
+    totalLeads: 0,
+    totalCalls: 0,
+    completedCalls: 0,
+    conversionRate: 0,
+    avgCallDuration: 0,
+    topPerformer: '',
+    recentActivity: 0
+  });
+  const [repPerformance, setRepPerformance] = useState<RepPerformance[]>([]);
+  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showUsersModal, setShowUsersModal] = useState(false);
+  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [csvLeads, setCsvLeads] = useState<any[]>([]);
+  const [csvPreview, setCsvPreview] = useState(false);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvImporting, setCsvImporting] = useState(false);
+  const [csvSalesReps, setCsvSalesReps] = useState<any[]>([]);
+  const [csvDefaultRep, setCsvDefaultRep] = useState<string>('unassigned');
+  const [callRecords, setCallRecords] = useState<CallRecord[]>([]);
+
+  useEffect(() => {
+    console.log('AdminDashboard useEffect - profile:', profile);
+    
+    if (profile && profile.role !== 'admin') {
+      console.log('User is not admin, redirecting to sales dashboard');
+      navigate('/sales-dashboard', { replace: true });
+      return;
+    }
+    
+    if (profile?.role === 'admin') {
+      console.log('User is admin, fetching dashboard data');
+      fetchDashboardData();
+      fetchCsvSalesReps();
+    } else {
+      console.log('Profile not loaded yet or user not admin');
+    }
+  }, [profile, navigate]);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch leads count
+      const { count: leadsCount } = await supabase
+        .from('clients')
+        .select('*', { count: 'exact', head: true });
+
+      // Fetch calls count
+      const { count: callsCount } = await supabase
+        .from('call_records')
+        .select('*', { count: 'exact', head: true });
+
+      // Fetch completed calls
+      const { count: completedCallsCount } = await supabase
+        .from('call_records')
+        .select('*', { count: 'exact', head: true })
+        .eq('qualification_status', 'hot');
+
+      // Fetch rep performance
+      const { data: repsData } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          full_name,
+          email,
+          call_records!rep_id(
+            id,
+            qualification_status,
+            score
+          )
+        `)
+        .eq('role', 'rep');
+
+      // Calculate rep performance
+      const performanceData: RepPerformance[] = repsData?.map(rep => {
+        const calls = rep.call_records || [];
+        const completedCalls = calls.filter((call: any) => call.qualification_status === 'hot').length;
+        const avgScore = calls.length > 0 
+          ? calls.reduce((sum: number, call: any) => sum + (call.score || 0), 0) / calls.length 
+          : 0;
+        
+        return {
+          id: rep.id,
+          name: rep.full_name,
+          email: rep.email,
+          totalCalls: calls.length,
+          completedCalls,
+          conversionRate: calls.length > 0 ? (completedCalls / calls.length) * 100 : 0,
+          avgScore: Math.round(avgScore)
+        };
+      }) || [];
+
+      // Fetch recent activity (simplified)
+      const { data: recentCalls } = await supabase
+        .from('call_records')
+        .select(`
+          id,
+          call_timestamp,
+          qualification_status,
+          profiles!rep_id(full_name)
+        `)
+        .order('call_timestamp', { ascending: false })
+        .limit(10);
+
+      const activityData: RecentActivity[] = recentCalls?.map(call => ({
+        id: call.id,
+        type: 'call' as const,
+        description: `Call completed with ${call.qualification_status} status`,
+        timestamp: call.call_timestamp,
+        user: call.profiles?.full_name || 'Unknown'
+      })) || [];
+
+      // Fetch detailed call records for hot deals
+      const { data: detailedCallRecords } = await supabase
+        .from('call_records')
+        .select(`
+          *,
+          clients (
+            full_name,
+            company_name,
+            deal_value
+          ),
+          profiles!rep_id (
+            full_name,
+            email
+          )
+        `)
+        .order('call_timestamp', { ascending: false });
+
+      setCallRecords((detailedCallRecords as unknown as CallRecord[]) || []);
+
+      const topPerformerObj = performanceData.length > 0
+        ? performanceData.reduce((prev, current) =>
+            current.conversionRate > prev.conversionRate ? current : prev
+          )
+        : null;
+
+      setStats({
+        totalLeads: leadsCount || 0,
+        totalCalls: callsCount || 0,
+        completedCalls: completedCallsCount || 0,
+        conversionRate: callsCount ? ((completedCallsCount || 0) / callsCount) * 100 : 0,
+        avgCallDuration: 0, // Would need to calculate from actual data
+        topPerformer: topPerformerObj ? `${topPerformerObj.name} (${topPerformerObj.conversionRate.toFixed(1)}%)` : 'N/A',
+        recentActivity: activityData.length
+      });
+
+      setRepPerformance(performanceData);
+      setRecentActivity(activityData);
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchAllUsers = async () => {
+    setUsersLoading(true);
+    try {
+      const { data, error } = await supabase.from('profiles').select('*').order('full_name');
+      if (error) throw error;
+      setAllUsers(data || []);
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to fetch users', variant: 'destructive' });
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  const handleExportUsers = async () => {
+    setUsersLoading(true);
+    try {
+      const { dat

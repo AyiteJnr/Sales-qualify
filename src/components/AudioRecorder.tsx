@@ -35,7 +35,14 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ clientId, onTranscription
       });
       
       streamRef.current = stream;
-      const mediaRecorder = new MediaRecorder(stream);
+      // Prefer a widely supported mime type
+      const preferredMimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : (MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '');
+
+      const mediaRecorder = preferredMimeType
+        ? new MediaRecorder(stream, { mimeType: preferredMimeType })
+        : new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       
       const chunks: Blob[] = [];
@@ -47,13 +54,15 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ clientId, onTranscription
       };
       
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'audio/webm' });
+        const containerType = preferredMimeType || 'audio/webm';
+        const blob = new Blob(chunks, { type: containerType });
         setAudioBlob(blob);
         const url = URL.createObjectURL(blob);
         setAudioUrl(url);
       };
       
-      mediaRecorder.start();
+      // Start with a timeslice to flush data periodically
+      mediaRecorder.start(1000);
       setIsRecording(true);
       setRecordingTime(0);
       
@@ -116,7 +125,11 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ clientId, onTranscription
         
         // Call transcription edge function
         const { data, error } = await supabase.functions.invoke('transcribe-audio', {
-          body: { audio: base64Audio }
+          body: {
+            audio: base64Audio,
+            mimeType: audioBlob.type || 'audio/webm',
+            fileName: `${clientId}_${Date.now()}.webm`
+          }
         });
         
         if (error) throw error;
@@ -144,7 +157,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ clientId, onTranscription
       console.error('Error transcribing audio:', error);
       toast({
         title: "Transcription Error",
-        description: error.message || "Failed to transcribe audio.",
+        description: error.message || "Failed to transcribe audio. Please try again.",
         variant: "destructive",
       });
     } finally {

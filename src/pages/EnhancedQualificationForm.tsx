@@ -250,16 +250,27 @@ const EnhancedQualificationForm = () => {
   const handleSave = async () => {
     if (!client) return;
 
+    // Ensure user is authenticated; RLS requires rep_id = auth.uid()
+    if (!user?.id) {
+      toast({
+        title: "Not signed in",
+        description: "Please sign in again to save this qualification.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSaving(true);
     const calculatedScore = calculateScore();
     setScore(calculatedScore);
 
     try {
       const qualificationStatus: 'hot' | 'warm' | 'cold' = calculatedScore >= 80 ? 'hot' : calculatedScore >= 60 ? 'warm' : 'cold';
-      
-      const callData = {
+
+      // Full payload (may include columns not present on some DBs)
+      const callDataFull = {
         client_id: client.id,
-        rep_id: user?.id || 'public-user',
+        rep_id: user.id,
         answers: answers,
         score: calculatedScore,
         transcript_text: transcript,
@@ -267,43 +278,73 @@ const EnhancedQualificationForm = () => {
         qualification_status: qualificationStatus,
         is_hot_deal: calculatedScore >= 80 || qualificationStatus === 'hot',
         follow_up_required: calculatedScore >= 70 || qualificationStatus === 'hot',
-        call_duration: transcript ? Math.max(30, Math.min(transcript.length / 10, 600)) : 0, // Estimate duration
+        call_duration: transcript ? Math.max(30, Math.min(transcript.length / 10, 600)) : 0,
         comments: `Qualification completed with score: ${calculatedScore}% on ${new Date().toLocaleDateString()}. Status: ${qualificationStatus.toUpperCase()}.`,
         next_action: calculatedScore >= 80 ? 'URGENT: Schedule demo meeting within 24 hours' : 
                     calculatedScore >= 70 ? 'Schedule demo meeting this week' : 
                     calculatedScore >= 60 ? 'Follow up call next week' : 'Archive lead',
         admin_notes: `Call completed by ${profile?.full_name || 'Sales Rep'} at ${new Date().toLocaleString()}. ${calculatedScore >= 80 ? 'HIGH PRIORITY HOT LEAD!' : ''}`,
         call_outcome: calculatedScore >= 80 ? 'hot_lead' : calculatedScore >= 60 ? 'qualified' : 'not_qualified'
-      };
+      } as const;
 
-      let result;
+      // Minimal payload guaranteed to exist
+      const callDataMinimal = {
+        client_id: client.id,
+        rep_id: user.id,
+        answers: answers,
+        score: calculatedScore,
+        transcript_text: transcript,
+        audio_url: audioUrl,
+        qualification_status: qualificationStatus
+      } as const;
+
+      let upsertError: any | null = null;
+      let upsertData: any[] | null = null;
+
+      // Try full payload first
       if (existingCallRecord) {
-        result = await supabase
-          .from('call_records')
-          .update(callData)
-          .eq('id', existingCallRecord.id)
-          .select();
+        const res = await supabase.from('call_records').update(callDataFull).eq('id', existingCallRecord.id).select();
+        upsertError = res.error;
+        upsertData = res.data as any[] | null;
       } else {
-        result = await supabase
-          .from('call_records')
-          .insert([callData])
-          .select();
+        const res = await supabase.from('call_records').insert([callDataFull]).select();
+        upsertError = res.error;
+        upsertData = res.data as any[] | null;
       }
 
-      if (result.error) throw result.error;
+      // If full payload fails due to column issues, retry with minimal payload
+      if (upsertError) {
+        console.warn('Full payload failed, retrying with minimal payload:', upsertError?.message);
+        if (existingCallRecord) {
+          const res2 = await supabase.from('call_records').update(callDataMinimal).eq('id', existingCallRecord.id).select();
+          upsertError = res2.error;
+          upsertData = res2.data as any[] | null;
+        } else {
+          const res2 = await supabase.from('call_records').insert([callDataMinimal]).select();
+          upsertError = res2.error;
+          upsertData = res2.data as any[] | null;
+        }
+      }
 
-      // Update client status
-      await supabase
-        .from('clients')
-        .update({ 
-          status: 'completed',
-          notes: `Qualification score: ${calculatedScore}% - ${qualificationStatus.toUpperCase()}`
-        })
-        .eq('id', client.id);
+      if (upsertError) throw upsertError;
 
-      // Save for export functionality  
-      if (result.data && result.data[0]) {
-        localStorage.setItem('lastCallRecordId', result.data[0].id);
+      // Update client status (best-effort; ignore errors)
+      try {
+        await supabase
+          .from('clients')
+          .update({ 
+            status: 'completed',
+            notes: `Qualification score: ${calculatedScore}% - ${qualificationStatus.toUpperCase()}`
+          })
+          .eq('id', client.id);
+      } catch (e) {
+        console.warn('Client status update skipped:', e);
+      }
+
+      // Save for export functionality
+      const saved = upsertData && upsertData[0];
+      if (saved) {
+        localStorage.setItem('lastCallRecordId', saved.id);
         localStorage.setItem('lastCallData', JSON.stringify({
           clientName: client.full_name,
           score: calculatedScore,
@@ -315,20 +356,20 @@ const EnhancedQualificationForm = () => {
       }
 
       toast({
-        title: "Success!",
-        description: `Qualification saved successfully! Score: ${calculatedScore}/100. Call record available for export and booking follow-up meeting.`,
+        title: "Qualification Saved",
+        description: `Score: ${calculatedScore}/100. You can now export this call from Call History.`,
       });
 
       // Navigate back after delay
       setTimeout(() => {
-        navigate('/dashboard');
-      }, 1500);
+        navigate('/call-history');
+      }, 1200);
 
     } catch (error: any) {
       console.error('Save error:', error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to save qualification data. Please try again.",
+        title: "Save Failed",
+        description: error.message || "We couldn't save this qualification. Please try again.",
         variant: "destructive",
       });
     } finally {

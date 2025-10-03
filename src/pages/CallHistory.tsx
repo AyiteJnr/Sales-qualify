@@ -59,7 +59,7 @@ interface CallRecord {
     company_name: string | null;
     email: string | null;
     phone: string | null;
-    deal_value: number | null;
+    deal_value?: number | null;
   };
   profiles: {
     full_name: string;
@@ -157,8 +157,7 @@ const CallHistory = () => {
             full_name,
             company_name,
             email,
-            phone,
-            deal_value
+            phone
           ),
           profiles!rep_id (
             full_name,
@@ -544,9 +543,9 @@ const CallHistory = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="hover:bg-primary/5">
+              <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="hover:bg-primary/5">
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
+                Back
               </Button>
               <Phone className="h-6 w-6 text-primary" />
               <h1 className="text-xl font-bold font-heading bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
