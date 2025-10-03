@@ -712,6 +712,22 @@ const AdminDashboard = () => {
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
+              onClick={() => {
+                const messagesTab = document.querySelector('[value="messages"]') as HTMLElement;
+                if (messagesTab) messagesTab.click();
+              }}
+              className="relative"
+            >
+              <Phone className="h-4 w-4 mr-2" />
+              Messages
+              {inbox.length > 0 && (
+                <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-xs">
+                  {inbox.length}
+                </Badge>
+              )}
+            </Button>
+            <Button
+              variant="outline"
               onClick={() => fetchDashboardData(true)}
             >
               <RefreshCw className="h-4 w-4 mr-2" />
@@ -782,12 +798,11 @@ const AdminDashboard = () => {
           <div>
 
             <Tabs defaultValue="overview" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-6 bg-gray-100 p-1 rounded-lg">
+              <TabsList className="grid w-full grid-cols-5 bg-gray-100 p-1 rounded-lg">
                 <TabsTrigger value="overview" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Overview</TabsTrigger>
                 <TabsTrigger value="deals" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Deals</TabsTrigger>
                 <TabsTrigger value="performance" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Performance</TabsTrigger>
                 <TabsTrigger value="leads" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Lead Management</TabsTrigger>
-                <TabsTrigger value="integrations" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Integrations</TabsTrigger>
                 <TabsTrigger value="settings" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Settings</TabsTrigger>
               </TabsList>
 
@@ -1449,17 +1464,6 @@ const AdminDashboard = () => {
                 </Card>
               </TabsContent>
 
-              <TabsContent value="integrations" className="space-y-6">
-                <N8NIntegration 
-                  onLeadsImported={(count) => {
-                    toast({
-                      title: "Leads Imported",
-                      description: `Successfully imported ${count} leads from N8N`,
-                    });
-                    fetchDashboardData(); // Refresh dashboard data
-                  }}
-                />
-              </TabsContent>
 
               <TabsContent value="messages" className="space-y-6">
                 <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-0 shadow-lg">
@@ -1673,6 +1677,30 @@ const AdminDashboard = () => {
                         </div>
                       </>
                     )}
+                  </CardContent>
+                </Card>
+
+                {/* Integrations Section */}
+                <Card className="mt-6">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Settings className="h-5 w-5" />
+                      Integrations
+                    </CardTitle>
+                    <CardDescription>
+                      Connect with external services and import leads automatically
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <N8NIntegration 
+                      onLeadsImported={(count) => {
+                        toast({
+                          title: "Leads Imported",
+                          description: `Successfully imported ${count} leads from N8N`,
+                        });
+                        fetchDashboardData(); // Refresh dashboard data
+                      }}
+                    />
                   </CardContent>
                 </Card>
               </TabsContent>

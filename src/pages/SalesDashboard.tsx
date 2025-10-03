@@ -421,6 +421,24 @@ const SalesDashboard = () => {
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
+              onClick={() => {
+                const messagesSection = document.querySelector('[data-messages-section]');
+                if (messagesSection) {
+                  messagesSection.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
+              className="relative text-gray-600"
+            >
+              <Phone className="h-4 w-4 mr-2" />
+              Messages
+              {inbox.length > 0 && (
+                <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-xs">
+                  {inbox.length}
+                </Badge>
+              )}
+            </Button>
+            <Button
+              variant="outline"
               onClick={fetchDashboardData}
               className="text-gray-600"
             >
