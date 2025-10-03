@@ -79,8 +79,8 @@ const SalesDashboard = () => {
   const [initialLoaded, setInitialLoaded] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [inbox, setInbox] = useState<Array<{ id: string; body: string; sender_id: string; recipient_id: string; created_at: string; sender_name?: string }>>([]);
-  const [admins, setAdmins] = useState<Array<{ id: string; full_name: string }>>([]);
-  const [selectedAdmin, setSelectedAdmin] = useState<string>('');
+  const [recipients, setRecipients] = useState<Array<{ id: string; full_name: string }>>([]);
+  const [selectedRecipient, setSelectedRecipient] = useState<string>('');
   const [newMessage, setNewMessage] = useState('');
 
   useEffect(() => {
@@ -109,13 +109,14 @@ const SalesDashboard = () => {
 
   // Load inbox and admins, subscribe to messages
   useEffect(() => {
-    const loadAdmins = async () => {
-      const { data, error } = await supabase.from('profiles').select('id, full_name').eq('role', 'admin');
+    const loadRecipients = async () => {
+      const { data, error } = await supabase.from('profiles').select('id, full_name');
       if (error) {
-        console.error('Load admins error:', error);
+        console.error('Load recipients error:', error);
       }
-      setAdmins(data || []);
-      if ((data || []).length > 0 && !selectedAdmin) setSelectedAdmin((data || [])[0].id);
+      const list = (data || []).filter(u => u.id !== user?.id);
+      setRecipients(list);
+      if (list.length > 0 && !selectedRecipient) setSelectedRecipient(list[0].id);
     };
     const loadInbox = async () => {
       if (!user?.id) return;
@@ -144,19 +145,19 @@ const SalesDashboard = () => {
         sender_name: m.profiles?.full_name
       })));
     };
-    loadAdmins();
+    loadRecipients();
     loadInbox();
     const ch = supabase.channel('realtime-messages-rep')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `recipient_id=eq.${user?.id}` }, loadInbox)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, loadInbox)
       .subscribe();
     return () => { try { supabase.removeChannel(ch); } catch {} };
   }, [user?.id]);
 
-  const sendMessageToAdmin = async () => {
-    if (!selectedAdmin || !newMessage.trim() || !user?.id) return;
+  const sendMessage = async () => {
+    if (!selectedRecipient || !newMessage.trim() || !user?.id) return;
     const { error } = await supabase.from('messages').insert({
       sender_id: user.id,
-      recipient_id: selectedAdmin,
+      recipient_id: selectedRecipient,
       body: newMessage.trim()
     });
     if (error) {
@@ -754,7 +755,7 @@ const SalesDashboard = () => {
             </motion.div>
           )}
 
-          {/* Messages with Admin */}
+          {/* Messages */}
           <motion.div variants={itemVariants} className="mt-8">
             <Card>
               <CardHeader>
@@ -763,7 +764,7 @@ const SalesDashboard = () => {
                   Messages
                 </CardTitle>
                 <CardDescription>
-                  Communicate with your admin for follow-ups and support
+                  Communicate with your team for follow-ups and support
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -781,20 +782,20 @@ const SalesDashboard = () => {
                 <div className="flex items-center gap-2">
                   <select
                     className="border rounded h-10 px-2"
-                    value={selectedAdmin}
-                    onChange={(e) => setSelectedAdmin(e.target.value)}
+                    value={selectedRecipient}
+                    onChange={(e) => setSelectedRecipient(e.target.value)}
                   >
-                    {admins.map(a => (
-                      <option key={a.id} value={a.id}>{a.full_name}</option>
+                    {recipients.map(r => (
+                      <option key={r.id} value={r.id}>{r.full_name}</option>
                     ))}
                   </select>
                   <input
                     className="border rounded h-10 px-3 flex-1"
-                    placeholder="Type a message to admin"
+                    placeholder="Type a message"
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                   />
-                  <Button onClick={sendMessageToAdmin} disabled={!selectedAdmin || !newMessage.trim()}>Send</Button>
+                  <Button onClick={sendMessage} disabled={!selectedRecipient || !newMessage.trim()}>Send</Button>
                 </div>
               </CardContent>
             </Card>

@@ -1100,11 +1100,11 @@ const AdminDashboard = () => {
                         <div className="flex items-center gap-2">
                           <Select value={selectedRepForMsg} onValueChange={setSelectedRepForMsg}>
                             <SelectTrigger className="w-64">
-                              <SelectValue placeholder="Select sales rep" />
+                              <SelectValue placeholder="Select recipient" />
                             </SelectTrigger>
                             <SelectContent>
-                              {repPerformance.map(r => (
-                                <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                              {allUsers.map(u => (
+                                <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
