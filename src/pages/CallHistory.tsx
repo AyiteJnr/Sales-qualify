@@ -250,7 +250,7 @@ const CallHistory = () => {
       filteredCount: filtered.length,
       filters: { searchTerm, statusFilter, selectedRep, hotDealsOnly }
     });
-    
+
     setFilteredRecords(filtered);
   };
 
@@ -278,7 +278,8 @@ const CallHistory = () => {
       if (error) {
         console.error('RPC error:', error);
         // Fallback: update the call record directly
-        const { error: updateError } = await supabase
+        let updateError = null as any;
+        let res = await supabase
           .from('call_records')
           .update({
             admin_notes: `Follow-up request from admin: ${followUpMessage}`,
@@ -286,8 +287,19 @@ const CallHistory = () => {
             updated_at: new Date().toISOString()
           })
           .eq('id', callRecord.id);
-        
-        if (updateError) throw updateError;
+        updateError = res.error;
+        if (updateError && String(updateError.message || '').toLowerCase().includes('follow_up_required')) {
+          const res2 = await supabase
+            .from('call_records')
+            .update({
+              admin_notes: `Follow-up request from admin: ${followUpMessage}`,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', callRecord.id);
+          if (res2.error) throw res2.error;
+        } else if (updateError) {
+          throw updateError;
+        }
       }
 
       // Also drop a message into messages inbox if table exists
@@ -592,12 +604,12 @@ const CallHistory = () => {
             <CardContent className="pt-6">
               <div className="space-y-4">
                 {/* Search Bar */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
                     placeholder="Search by client name, company, email, or sales rep..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10 h-12"
                   />
                 </div>

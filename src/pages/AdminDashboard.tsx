@@ -610,13 +610,23 @@ const AdminDashboard = () => {
     setSendingFollowUp(true);
     try {
       // Update the call record with follow-up information
-      const { error } = await supabase.from('call_records').update({
-        follow_up_required: false,
-        next_action: 'Follow-up sent',
-        comments: `Follow-up sent by ${profile?.full_name} on ${new Date().toLocaleDateString()}. Message: ${followUpMessage}`,
+      let updateError = null as any;
+      let res = await supabase.from('call_records').update({
+        follow_up_required: true,
+        next_action: 'Follow-up requested',
+        comments: `Follow-up requested by ${profile?.full_name} on ${new Date().toLocaleDateString()}. Message: ${followUpMessage}`,
       }).eq('id', record.id);
-
-      if (error) throw error;
+      updateError = res.error;
+      // Fallback if column follow_up_required doesn't exist
+      if (updateError && String(updateError.message || '').toLowerCase().includes('follow_up_required')) {
+        const res2 = await supabase.from('call_records').update({
+          next_action: 'Follow-up requested',
+          comments: `Follow-up requested by ${profile?.full_name} on ${new Date().toLocaleDateString()}. Message: ${followUpMessage}`,
+        }).eq('id', record.id);
+        if (res2.error) throw res2.error;
+      } else if (updateError) {
+        throw updateError;
+      }
 
       // Create a notification for the sales rep (if notifications table exists)
       try {
