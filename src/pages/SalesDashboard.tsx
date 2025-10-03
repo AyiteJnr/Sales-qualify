@@ -167,6 +167,7 @@ const SalesDashboard = () => {
         .from('call_records')
         .select(`
           id,
+          client_id,
           call_timestamp,
           score,
           qualification_status,
@@ -198,8 +199,34 @@ const SalesDashboard = () => {
       const conversionRate = totalCalls > 0 ? (hotCalls / totalCalls) * 100 : 0;
       const hotDeals = hotCalls;
 
+      // Union of assigned leads + clients the rep has called
+      const callClientIds = new Set<string>((callsData || [])
+        .map((c: any) => c.client_id)
+        .filter(Boolean));
+      const assignedLeadIds = new Set<string>((leadsData || []).map((l: any) => l.id));
+      const mergedIds = new Set<string>([...assignedLeadIds, ...callClientIds]);
+
+      // Build lightweight lead entries from calls for clients not in assigned leads
+      const callDerivedLeads: MyLead[] = (callsData || [])
+        .filter(c => c.client_id && !assignedLeadIds.has(c.client_id))
+        .map(c => ({
+          id: c.client_id,
+          client_id: c.client_id,
+          full_name: c.clients?.full_name || 'Unknown Client',
+          company_name: c.clients?.company_name || null,
+          email: null,
+          phone: null,
+          status: 'in_progress',
+          scheduled_time: null,
+          last_call_score: typeof c.score === 'number' ? c.score : null,
+          qualification_status: (c.qualification_status as any) || null,
+          notes: null
+        }));
+
+      const mergedLeads: MyLead[] = [ ...(leadsData || []), ...callDerivedLeads ];
+
       setStats({
-        myLeads: leadsData?.length || 0,
+        myLeads: mergedIds.size,
         callsToday,
         completedCalls: hotCalls,
         conversionRate,
@@ -209,7 +236,7 @@ const SalesDashboard = () => {
         hotDeals
       });
 
-      setMyLeads(leadsData || []);
+      setMyLeads(mergedLeads);
       // Process recent calls to ensure proper hot deal flags
       const processedCalls = (callsData || []).map(call => ({
         ...call,
