@@ -178,49 +178,34 @@ const SalesDashboard = () => {
         .eq('rep_id', user.id)
         .order('call_timestamp', { ascending: false });
 
-      // Calculate stats
-      const today = new Date().toDateString();
-      const thisWeek = new Date();
-      thisWeek.setDate(thisWeek.getDate() - 7);
+      // Calculate stats precisely
+      const now = new Date();
+      const todayYmd = now.toISOString().slice(0, 10); // yyyy-mm-dd
+      const weekAgo = new Date(now);
+      weekAgo.setDate(weekAgo.getDate() - 7);
 
-      const callsToday = callsData?.filter(call => 
-        new Date(call.call_timestamp).toDateString() === today
-      ).length || 0;
-
-      const completedCalls = callsData?.filter(call => 
-        call.qualification_status === 'hot'
-      ).length || 0;
-
-      const thisWeekCalls = callsData?.filter(call => 
-        new Date(call.call_timestamp) >= thisWeek
-      ).length || 0;
-
-      const hotDeals = callsData?.filter(call => {
-        const isHot = call.qualification_status === 'hot' || call.is_hot_deal === true;
-        console.log('Hot deal check for call:', { id: call.id, status: call.qualification_status, isHotDeal: call.is_hot_deal, result: isHot });
-        return isHot;
-      }).length || 0;
-      
-      console.log('Total hot deals found:', hotDeals);
-
-      const avgScore = callsData && callsData.length > 0
-        ? callsData.reduce((sum, call) => sum + (call.score || 0), 0) / callsData.length
+      const totalCalls = (callsData?.length || 0);
+      const hotCalls = (callsData || []).filter(call => call.qualification_status === 'hot' || call.is_hot_deal === true).length;
+      const callsToday = (callsData || []).filter(call => {
+        const d = new Date(call.call_timestamp);
+        return d.toISOString().slice(0, 10) === todayYmd;
+      }).length;
+      const thisWeekCalls = (callsData || []).filter(call => new Date(call.call_timestamp) >= weekAgo).length;
+      const scoredCalls = (callsData || []).filter(call => typeof call.score === 'number');
+      const avgScore = scoredCalls.length > 0
+        ? Math.round((scoredCalls.reduce((sum, c) => sum + (c.score || 0), 0) / scoredCalls.length))
         : 0;
-
-      const conversionRate = callsData && callsData.length > 0
-        ? (completedCalls / callsData.length) * 100
-        : 0;
+      const conversionRate = totalCalls > 0 ? (hotCalls / totalCalls) * 100 : 0;
+      const hotDeals = hotCalls;
 
       setStats({
         myLeads: leadsData?.length || 0,
         callsToday,
-        completedCalls,
+        completedCalls: hotCalls,
         conversionRate,
-        avgScore: Math.round(avgScore),
+        avgScore,
         thisWeekCalls,
-        pendingFollowUps: leadsData?.filter(lead => 
-          lead.status === 'scheduled' || lead.status === 'in_progress'
-        ).length || 0,
+        pendingFollowUps: (leadsData || []).filter(lead => lead.status === 'scheduled' || lead.status === 'in_progress').length || 0,
         hotDeals
       });
 
