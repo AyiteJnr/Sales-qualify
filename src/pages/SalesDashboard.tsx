@@ -179,6 +179,26 @@ const SalesDashboard = () => {
         .eq('rep_id', user.id)
         .order('call_timestamp', { ascending: false });
 
+      // Fetch client details for any clients referenced by calls (in case the join alias isn't available)
+      const callClientIdsArr = Array.from(new Set((callsData || [])
+        .map((c: any) => c.client_id)
+        .filter(Boolean)));
+      let clientsById: Record<string, { full_name: string | null; company_name: string | null; email: string | null; phone: string | null }> = {};
+      if (callClientIdsArr.length > 0) {
+        const { data: callClients } = await supabase
+          .from('clients')
+          .select('id, full_name, company_name, email, phone')
+          .in('id', callClientIdsArr);
+        (callClients || []).forEach((cl: any) => {
+          clientsById[cl.id] = {
+            full_name: cl.full_name || null,
+            company_name: cl.company_name || null,
+            email: cl.email || null,
+            phone: cl.phone || null
+          };
+        });
+      }
+
       // Calculate stats precisely
       const now = new Date();
       const todayYmd = now.toISOString().slice(0, 10); // yyyy-mm-dd
@@ -200,9 +220,7 @@ const SalesDashboard = () => {
       const hotDeals = hotCalls;
 
       // Union of assigned leads + clients the rep has called
-      const callClientIds = new Set<string>((callsData || [])
-        .map((c: any) => c.client_id)
-        .filter(Boolean));
+      const callClientIds = new Set<string>(callClientIdsArr);
       const assignedLeadIds = new Set<string>((leadsData || []).map((l: any) => l.id));
       const mergedIds = new Set<string>([...assignedLeadIds, ...callClientIds]);
 
@@ -212,10 +230,10 @@ const SalesDashboard = () => {
         .map(c => ({
           id: c.client_id,
           client_id: c.client_id,
-          full_name: c.clients?.full_name || 'Unknown Client',
-          company_name: c.clients?.company_name || null,
-          email: null,
-          phone: null,
+          full_name: (c.clients?.full_name) || clientsById[c.client_id]?.full_name || 'Unknown Client',
+          company_name: (c.clients?.company_name) || clientsById[c.client_id]?.company_name || null,
+          email: clientsById[c.client_id]?.email || null,
+          phone: clientsById[c.client_id]?.phone || null,
           status: 'in_progress',
           scheduled_time: null,
           last_call_score: typeof c.score === 'number' ? c.score : null,
@@ -223,7 +241,11 @@ const SalesDashboard = () => {
           notes: null
         }));
 
-      const mergedLeads: MyLead[] = [ ...(leadsData || []), ...callDerivedLeads ];
+      // Deduplicate by id preserving first occurrence (prefer assigned lead details)
+      const mergedLeadsMap = new Map<string, MyLead>();
+      (leadsData || []).forEach((l: any) => mergedLeadsMap.set(l.id, l));
+      callDerivedLeads.forEach((l) => { if (!mergedLeadsMap.has(l.id)) mergedLeadsMap.set(l.id, l); });
+      const mergedLeads: MyLead[] = Array.from(mergedLeadsMap.values());
 
       setStats({
         myLeads: mergedIds.size,
@@ -244,6 +266,18 @@ const SalesDashboard = () => {
       }));
       
       setRecentCalls(processedCalls.slice(0, 10) || []);
+      // Debug logging for validation in dev
+      console.log('Sales stats debug', {
+        leadsAssigned: leadsData?.length,
+        clientsFromCalls: callClientIdsArr.length,
+        mergedLeads: mergedLeads.length,
+        totalCalls,
+        hotCalls,
+        callsToday,
+        thisWeekCalls,
+        avgScore,
+        conversionRate
+      });
       if (!initialLoaded) setInitialLoaded(true);
 
     } catch (error) {
