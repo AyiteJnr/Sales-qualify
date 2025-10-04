@@ -31,7 +31,8 @@ import {
   AlertCircle,
   Loader2,
   Star,
-  Building2
+  Building2,
+  MessageSquare
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
