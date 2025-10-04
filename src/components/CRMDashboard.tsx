@@ -59,9 +59,10 @@ import { useToast } from '@/hooks/use-toast';
 interface CRMDashboardProps {
   userId: string;
   role: string;
+  repName?: string;
 }
 
-export default function CRMDashboard({ userId, role }: CRMDashboardProps) {
+export default function CRMDashboard({ userId, role, repName }: CRMDashboardProps) {
   const [stats, setStats] = useState<CRMDashboardStats | null>(null);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -293,7 +294,20 @@ export default function CRMDashboard({ userId, role }: CRMDashboardProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            CRM Dashboard
+            {repName && (
+              <span className="text-lg font-normal text-gray-600 ml-2">
+                - {repName}
+              </span>
+            )}
+          </h1>
+          <p className="text-gray-600">Manage your companies, contacts, deals, and activities</p>
+        </div>
+        <div className="space-y-6">
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
@@ -892,6 +906,8 @@ export default function CRMDashboard({ userId, role }: CRMDashboardProps) {
           />
         </div>
       )}
+        </div>
+      </div>
     </div>
   );
 }
