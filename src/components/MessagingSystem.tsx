@@ -95,20 +95,6 @@ export default function MessagingSystem({
   const loadMessages = async () => {
     setLoading(true);
     try {
-      // Check if messages table exists
-      const { data: tableCheck } = await supabase
-        .from('information_schema.tables')
-        .select('table_name')
-        .eq('table_schema', 'public')
-        .eq('table_name', 'messages');
-
-      if (!tableCheck || tableCheck.length === 0) {
-        console.log('Messages table not found, returning empty array');
-        setMessages([]);
-        setLoading(false);
-        return;
-      }
-
       let query = supabase.from('messages').select(`
         *,
         sender:profiles!messages_sender_id_fkey(full_name),
@@ -168,22 +154,6 @@ export default function MessagingSystem({
     }
 
     try {
-      // Check if messages table exists
-      const { data: tableCheck } = await supabase
-        .from('information_schema.tables')
-        .select('table_name')
-        .eq('table_schema', 'public')
-        .eq('table_name', 'messages');
-
-      if (!tableCheck || tableCheck.length === 0) {
-        toast({
-          title: "Error",
-          description: "Messages table not found. Please run database migrations first.",
-          variant: "destructive",
-        });
-        return;
-      }
-
       const messageBody = replyingTo 
         ? `Reply: ${newMessage}` 
         : newMessage;
@@ -231,22 +201,6 @@ export default function MessagingSystem({
     }
 
     try {
-      // Check if messages table exists
-      const { data: tableCheck } = await supabase
-        .from('information_schema.tables')
-        .select('table_name')
-        .eq('table_schema', 'public')
-        .eq('table_name', 'messages');
-
-      if (!tableCheck || tableCheck.length === 0) {
-        toast({
-          title: "Error",
-          description: "Messages table not found. Please run database migrations first.",
-          variant: "destructive",
-        });
-        return;
-      }
-
       const { error } = await supabase
         .from('messages')
         .insert({

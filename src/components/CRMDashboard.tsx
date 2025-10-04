@@ -51,6 +51,7 @@ import {
   syncLeadsToCRM,
   bulkImportLeadsToCRM
 } from '@/lib/crm-service';
+import { CompanyForm, ContactForm, DealForm, ActivityForm } from './CRMForms';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
@@ -73,6 +74,8 @@ export default function CRMDashboard({ userId, role }: CRMDashboardProps) {
   const [bulkUploadType, setBulkUploadType] = useState<'companies' | 'contacts' | 'deals' | 'activities'>('companies');
   const [bulkUploadFile, setBulkUploadFile] = useState<File | null>(null);
   const [bulkUploading, setBulkUploading] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [formType, setFormType] = useState<'company' | 'contact' | 'deal' | 'activity' | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -256,6 +259,20 @@ export default function CRMDashboard({ userId, role }: CRMDashboardProps) {
     return stageConfig?.color || 'bg-gray-500';
   };
 
+  const openForm = (type: 'company' | 'contact' | 'deal' | 'activity') => {
+    setFormType(type);
+    setShowForm(true);
+  };
+
+  const closeForm = () => {
+    setShowForm(false);
+    setFormType(null);
+  };
+
+  const handleFormSuccess = () => {
+    loadDashboardData();
+  };
+
   const getPriorityColor = (priority: string) => {
     const priorityConfig = PRIORITY_LEVELS.find(p => p.value === priority);
     return priorityConfig?.color || 'bg-gray-500';
@@ -344,6 +361,26 @@ export default function CRMDashboard({ userId, role }: CRMDashboardProps) {
           <TabsTrigger value="deals">Deals</TabsTrigger>
           <TabsTrigger value="activities">Activities</TabsTrigger>
         </TabsList>
+
+        {/* Action Buttons */}
+        <div className="flex justify-end space-x-2 mb-4">
+          <Button onClick={() => openForm('company')} className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Company
+          </Button>
+          <Button onClick={() => openForm('contact')} className="bg-green-600 hover:bg-green-700">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Contact
+          </Button>
+          <Button onClick={() => openForm('deal')} className="bg-purple-600 hover:bg-purple-700">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Deal
+          </Button>
+          <Button onClick={() => openForm('activity')} className="bg-orange-600 hover:bg-orange-700">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Activity
+          </Button>
+        </div>
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
@@ -793,6 +830,51 @@ export default function CRMDashboard({ userId, role }: CRMDashboardProps) {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Form Modals */}
+      {showForm && formType === 'company' && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <CompanyForm
+            onClose={closeForm}
+            onSuccess={handleFormSuccess}
+            userId={userId}
+            role={role}
+          />
+        </div>
+      )}
+
+      {showForm && formType === 'contact' && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <ContactForm
+            onClose={closeForm}
+            onSuccess={handleFormSuccess}
+            userId={userId}
+            role={role}
+          />
+        </div>
+      )}
+
+      {showForm && formType === 'deal' && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <DealForm
+            onClose={closeForm}
+            onSuccess={handleFormSuccess}
+            userId={userId}
+            role={role}
+          />
+        </div>
+      )}
+
+      {showForm && formType === 'activity' && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <ActivityForm
+            onClose={closeForm}
+            onSuccess={handleFormSuccess}
+            userId={userId}
+            role={role}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -298,9 +298,6 @@ export const getCRMDashboardStats = async (userId: string, role: string): Promis
       };
     }
 
-    // If some tables exist but not all, we'll handle gracefully
-    console.log('CRM tables status:', { companiesExists, contactsExists, dealsExists, activitiesExists });
-
     const baseQuery = role === 'admin' ? {} : { assigned_to: userId };
     
     // Get basic counts with error handling
