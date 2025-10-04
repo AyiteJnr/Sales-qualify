@@ -171,8 +171,47 @@ const LandingPage = () => {
       </motion.nav>
 
       {/* Hero Section */}
-      <section className="pt-20 pb-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
+      <section className="pt-20 pb-16 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+        {/* Floating background elements */}
+        <div className="absolute inset-0 -z-10">
+          <motion.div
+            animate={{ 
+              y: [0, -20, 0],
+              rotate: [0, 5, 0]
+            }}
+            transition={{ 
+              duration: 6,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+            className="absolute top-20 left-10 w-20 h-20 bg-blue-200 rounded-full opacity-20"
+          />
+          <motion.div
+            animate={{ 
+              y: [0, 20, 0],
+              rotate: [0, -5, 0]
+            }}
+            transition={{ 
+              duration: 8,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+            className="absolute top-40 right-20 w-16 h-16 bg-purple-200 rounded-full opacity-20"
+          />
+          <motion.div
+            animate={{ 
+              y: [0, -15, 0],
+              x: [0, 10, 0]
+            }}
+            transition={{ 
+              duration: 7,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+            className="absolute bottom-20 left-1/4 w-12 h-12 bg-indigo-200 rounded-full opacity-20"
+          />
+        </div>
+        <div className="max-w-7xl mx-auto relative">
           <div className="text-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -180,9 +219,15 @@ const LandingPage = () => {
               transition={{ duration: 0.8 }}
               className="mb-8"
             >
-              <Badge className="mb-4 bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 border-blue-200">
-                🚀 New: AI-Powered Call Transcription
-              </Badge>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6 }}
+              >
+                <Badge className="mb-4 bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 border-blue-200 text-sm px-4 py-2">
+                  🚀 New: AI-Powered Call Transcription & Analytics
+                </Badge>
+              </motion.div>
               <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6">
                 <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent">
                   Transform Your
@@ -190,9 +235,9 @@ const LandingPage = () => {
                 <br />
                 <span className="text-gray-900">Sales Process</span>
               </h1>
-              <p className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-                The all-in-one sales qualification platform with AI-powered insights, 
-                real-time analytics, and enterprise CRM capabilities.
+              <p className="text-xl md:text-2xl text-gray-600 max-w-4xl mx-auto leading-relaxed">
+                The complete sales qualification platform with AI-powered insights, 
+                real-time analytics, and enterprise CRM capabilities that transform how teams sell.
               </p>
             </motion.div>
 
@@ -202,14 +247,31 @@ const LandingPage = () => {
               transition={{ duration: 0.8, delay: 0.2 }}
               className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12"
             >
-              <Button 
-                size="lg"
-                onClick={() => navigate('/auth')}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg px-8 py-4 h-auto"
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
-                Start Free Trial
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
+                <Button 
+                  size="lg"
+                  onClick={() => navigate('/auth')}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg px-8 py-4 h-auto relative overflow-hidden"
+                >
+                  <motion.div
+                    animate={{ 
+                      scale: [1, 1.1, 1],
+                      opacity: [0.7, 1, 0.7]
+                    }}
+                    transition={{ 
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                    className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent"
+                  />
+                  <span className="relative z-10">Get Started Now</span>
+                  <ArrowRight className="ml-2 h-5 w-5 relative z-10" />
+                </Button>
+              </motion.div>
               <Button 
                 size="lg"
                 variant="outline"
@@ -261,8 +323,8 @@ const LandingPage = () => {
               Everything You Need to
               <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"> Scale Sales</span>
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Powerful features designed to streamline your sales process and boost team performance
+            <p className="text-xl text-gray-600 max-w-4xl mx-auto">
+              Advanced features designed to streamline your sales process, boost team performance, and drive revenue growth
             </p>
           </motion.div>
 
@@ -308,11 +370,11 @@ const LandingPage = () => {
             className="text-center mb-16"
           >
             <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-6">
-              Beautiful, Intuitive
+              Powerful, Intelligent
               <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"> Dashboards</span>
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Experience the power of our modern, responsive interface designed for maximum productivity
+            <p className="text-xl text-gray-600 max-w-4xl mx-auto">
+              Experience the power of our intelligent, responsive interface designed for maximum productivity and seamless workflow
             </p>
           </motion.div>
 
@@ -488,14 +550,31 @@ const LandingPage = () => {
               Join thousands of sales teams who have already revolutionized their workflow with SalesQualify
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Button 
-                size="lg"
-                onClick={() => navigate('/auth')}
-                className="bg-white text-blue-600 hover:bg-gray-100 text-lg px-8 py-4 h-auto"
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
-                Start Your Free Trial
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
+                <Button 
+                  size="lg"
+                  onClick={() => navigate('/auth')}
+                  className="bg-white text-blue-600 hover:bg-gray-100 text-lg px-8 py-4 h-auto relative overflow-hidden"
+                >
+                  <motion.div
+                    animate={{ 
+                      scale: [1, 1.1, 1],
+                      opacity: [0.7, 1, 0.7]
+                    }}
+                    transition={{ 
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                    className="absolute inset-0 bg-gradient-to-r from-blue-100/50 to-transparent"
+                  />
+                  <span className="relative z-10">Get Started Now</span>
+                  <ArrowRight className="ml-2 h-5 w-5 relative z-10" />
+                </Button>
+              </motion.div>
               <Button 
                 size="lg"
                 variant="outline"
