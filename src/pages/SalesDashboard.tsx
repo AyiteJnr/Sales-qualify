@@ -128,6 +128,14 @@ const SalesDashboard = () => {
     deals: [] as Deal[],
     activities: [] as CRMActivity[]
   });
+  const [crmStats, setCrmStats] = useState({
+    totalCompanies: 0,
+    totalContacts: 0,
+    totalDeals: 0,
+    totalActivities: 0,
+    pipelineValue: 0,
+    conversionRate: 0
+  });
   const [showCrmModal, setShowCrmModal] = useState(false);
   const [crmModalType, setCrmModalType] = useState<'company' | 'contact' | 'deal' | 'activity' | null>(null);
   const [editingRecord, setEditingRecord] = useState<Company | Contact | Deal | CRMActivity | null>(null);
@@ -290,14 +298,23 @@ const SalesDashboard = () => {
     
     try {
       setCrmLoading(true);
-      const [companies, contacts, deals, activities] = await Promise.all([
+      const [companies, contacts, deals, activities, stats] = await Promise.all([
         getCompanies(user.id, 'rep'),
         getContacts(user.id, 'rep'),
         getDeals(user.id, 'rep'),
-        getActivities(user.id, 'rep')
+        getActivities(user.id, 'rep'),
+        getCRMDashboardStats(user.id, 'rep')
       ]);
 
       setCrmData({ companies, contacts, deals, activities });
+      setCrmStats({
+        totalCompanies: stats.totalCompanies,
+        totalContacts: stats.totalContacts,
+        totalDeals: stats.totalDeals,
+        totalActivities: stats.totalActivities,
+        pipelineValue: stats.pipelineValue,
+        conversionRate: stats.conversionRate
+      });
     } catch (error) {
       console.error('Error loading CRM data:', error);
     } finally {
@@ -788,6 +805,68 @@ const SalesDashboard = () => {
             </Card>
           </motion.div>
 
+          {/* CRM Stats Overview */}
+          <motion.div 
+            variants={itemVariants}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+          >
+            <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 hover:shadow-lg transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-blue-700">Companies</p>
+                    <p className="text-3xl font-bold text-blue-900">{crmStats.totalCompanies}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <Building2 className="h-6 w-6 text-blue-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 hover:shadow-lg transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-green-700">Contacts</p>
+                    <p className="text-3xl font-bold text-green-900">{crmStats.totalContacts}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                    <Users className="h-6 w-6 text-green-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-purple-200 bg-gradient-to-br from-purple-50 to-violet-50 hover:shadow-lg transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-purple-700">Pipeline Value</p>
+                    <p className="text-3xl font-bold text-purple-900">${crmStats.pipelineValue.toLocaleString()}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <TrendingUp className="h-6 w-6 text-purple-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 hover:shadow-lg transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-orange-700">CRM Conversion</p>
+                    <p className="text-3xl font-bold text-orange-900">{crmStats.conversionRate.toFixed(1)}%</p>
+                  </div>
+                  <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                    <Target className="h-6 w-6 text-orange-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
           {/* My Leads Section */}
           <motion.div variants={itemVariants}>
             <Card>
@@ -899,124 +978,6 @@ const SalesDashboard = () => {
             </Card>
           </motion.div>
 
-          {/* Deals Section with Filtering */}
-          <motion.div variants={itemVariants} className="mt-8">
-            <Card className="border-gray-200 bg-gradient-to-br from-gray-50 to-blue-50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-gray-800">
-                  <TrendingUp className="h-5 w-5" />
-                  My Deals Dashboard
-                  <Badge variant="outline">
-                    {recentCalls.length} Total
-                  </Badge>
-                </CardTitle>
-                <CardDescription className="text-gray-600">
-                  Comprehensive view of all your deals - hot, warm, and cold leads
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {/* Deal Type Filter */}
-                <div className="flex gap-2 mb-6">
-                  <Button 
-                    variant={dealFilter === 'hot' ? "default" : "outline"}
-                    onClick={() => setDealFilter('hot')}
-                    className={dealFilter === 'hot' ? "bg-red-500 hover:bg-red-600 text-white" : "border-red-500 text-red-600 hover:bg-red-50"}
-                  >
-                    🔥 Hot Deals ({recentCalls.filter(call => call.qualification_status === 'hot').length})
-                  </Button>
-                  <Button 
-                    variant={dealFilter === 'warm' ? "default" : "outline"}
-                    onClick={() => setDealFilter('warm')}
-                    className={dealFilter === 'warm' ? "bg-yellow-500 hover:bg-yellow-600 text-white" : "border-yellow-500 text-yellow-600 hover:bg-yellow-50"}
-                  >
-                    🌡️ Warm Deals ({recentCalls.filter(call => call.qualification_status === 'warm').length})
-                  </Button>
-                  <Button 
-                    variant={dealFilter === 'cold' ? "default" : "outline"}
-                    onClick={() => setDealFilter('cold')}
-                    className={dealFilter === 'cold' ? "bg-blue-500 hover:bg-blue-600 text-white" : "border-blue-500 text-blue-600 hover:bg-blue-50"}
-                  >
-                    ❄️ Cold Deals ({recentCalls.filter(call => call.qualification_status === 'cold').length})
-                  </Button>
-                  <Button 
-                    variant={dealFilter === 'all' ? "default" : "outline"}
-                    onClick={() => setDealFilter('all')}
-                    className={dealFilter === 'all' ? "bg-gray-500 hover:bg-gray-600 text-white" : "border-gray-500 text-gray-600 hover:bg-gray-50"}
-                  >
-                    📊 All Deals ({recentCalls.length})
-                  </Button>
-                </div>
-
-                {/* Filtered Deals Display */}
-                <div className="space-y-3">
-                  {recentCalls
-                    .filter(call => dealFilter === 'all' || call.qualification_status === dealFilter)
-                    .slice(0, 5)
-                    .map((call) => (
-                      <div key={call.id} className={`flex items-center justify-between p-4 bg-white rounded-lg border shadow-sm ${
-                        call.qualification_status === 'hot' ? 'border-red-200' :
-                        call.qualification_status === 'warm' ? 'border-yellow-200' :
-                        call.qualification_status === 'cold' ? 'border-blue-200' : 'border-gray-200'
-                      }`}>
-                        <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                            call.qualification_status === 'hot' ? 'bg-red-100' :
-                            call.qualification_status === 'warm' ? 'bg-yellow-100' :
-                            call.qualification_status === 'cold' ? 'bg-blue-100' : 'bg-gray-100'
-                          }`}>
-                            <span className="text-lg">
-                              {call.qualification_status === 'hot' ? '🔥' :
-                               call.qualification_status === 'warm' ? '🌡️' :
-                               call.qualification_status === 'cold' ? '❄️' : '📊'}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="font-semibold text-gray-900">{call.client_name}</p>
-                            <p className="text-sm text-gray-600">
-                              Score: {call.score}/100 • {new Date(call.call_timestamp).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <Badge className={`${
-                            call.qualification_status === 'hot' ? 'bg-red-600 text-white' :
-                            call.qualification_status === 'warm' ? 'bg-yellow-600 text-white' :
-                            call.qualification_status === 'cold' ? 'bg-blue-600 text-white' : 'bg-gray-600 text-white'
-                          }`}>
-                            {call.qualification_status?.toUpperCase() || 'UNKNOWN'}
-                          </Badge>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => navigate(`/qualification/${call.id}`)}
-                            className={`${
-                              call.qualification_status === 'hot' ? 'border-red-200 text-red-600 hover:bg-red-50' :
-                              call.qualification_status === 'warm' ? 'border-yellow-200 text-yellow-600 hover:bg-yellow-50' :
-                              call.qualification_status === 'cold' ? 'border-blue-200 text-blue-600 hover:bg-blue-50' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                            }`}
-                          >
-                            Follow Up
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-
-                {recentCalls.filter(call => dealFilter === 'all' || call.qualification_status === dealFilter).length > 5 && (
-                  <div className="text-center mt-4">
-                    <Button
-                      variant="outline"
-                      onClick={() => navigate(`/call-history?filter=${dealFilter}`)}
-                      className="border-gray-200 text-gray-600 hover:bg-gray-50"
-                    >
-                      View All {dealFilter === 'all' ? 'Deals' : dealFilter.charAt(0).toUpperCase() + dealFilter.slice(1) + ' Deals'}
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
 
           {/* Recent Calls */}
           {recentCalls.length > 0 && (
@@ -1065,124 +1026,6 @@ const SalesDashboard = () => {
             </motion.div>
           )}
 
-          {/* Messages */}
-          <motion.div variants={itemVariants} className="mt-8" data-messages-section>
-            <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-0 shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-xl text-green-700">
-                  <Phone className="h-6 w-6" />
-                  💬 Messages
-                  {inbox.length > 0 && (
-                    <Badge variant="destructive" className="ml-2">
-                      {inbox.length} new
-                    </Badge>
-                  )}
-                </CardTitle>
-                <CardDescription className="text-green-600">
-                  Communicate with your team for follow-ups and support
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Message History */}
-                <div className="bg-white rounded-xl p-6 shadow-sm border">
-                  <h4 className="font-semibold mb-4 text-lg text-gray-800">Recent Messages</h4>
-                  <div className="space-y-3 max-h-80 overflow-auto">
-                    {inbox.map(msg => (
-                      <div key={msg.id} className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                              {(msg.sender_name || 'U').charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                              <span className="font-medium text-gray-900">{msg.sender_name || 'User'}</span>
-                              <span className="text-gray-500 ml-2 text-sm">to {msg.recipient_id === user?.id ? 'You' : 'Team'}</span>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-400">{new Date(msg.created_at).toLocaleString()}</span>
-                            {msg.sender_id !== user?.id && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => replyToMessage(msg.id, msg.sender_id, msg.sender_name || 'User')}
-                                className="h-6 px-2 text-xs"
-                              >
-                                Reply
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                        <div className="text-gray-700 ml-10">{msg.body}</div>
-                      </div>
-                    ))}
-                    {inbox.length === 0 && (
-                      <div className="text-center py-8">
-                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <Phone className="h-8 w-8 text-gray-400" />
-                        </div>
-                        <p className="text-gray-500 text-lg">No messages yet</p>
-                        <p className="text-gray-400 text-sm">Start a conversation with your team!</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Send Message */}
-                <div className="bg-white rounded-xl p-6 shadow-sm border" data-send-message>
-                  <h4 className="font-semibold mb-4 text-lg text-gray-800">
-                    {replyingTo ? 'Reply to Message' : 'Send Message'}
-                    {replyingTo && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setReplyingTo(null)}
-                        className="ml-2"
-                      >
-                        Cancel Reply
-                      </Button>
-                    )}
-                  </h4>
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <Select value={selectedRecipient} onValueChange={setSelectedRecipient}>
-                        <SelectTrigger className="w-80 h-12">
-                          <SelectValue placeholder="Select recipient" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {recipients.map(r => (
-                            <SelectItem key={r.id} value={r.id}>
-                              <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-xs font-medium">
-                                  {r.full_name.charAt(0).toUpperCase()}
-                                </div>
-                                {r.full_name}
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="flex items-end gap-3">
-                      <Textarea
-                        placeholder={replyingTo ? "Type your reply here..." : "Type your message here..."}
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        className="min-h-[100px] flex-1 resize-none"
-                      />
-                      <Button 
-                        onClick={sendMessage} 
-                        disabled={!selectedRecipient || !newMessage.trim()}
-                        className="h-12 px-6 bg-green-600 hover:bg-green-700"
-                      >
-                        {replyingTo ? 'Reply' : 'Send'}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
 
         </motion.div>
       </div>

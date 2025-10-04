@@ -196,10 +196,20 @@ const AdminDashboard = () => {
     deals: [] as Deal[],
     activities: [] as CRMActivity[]
   });
+  const [crmStats, setCrmStats] = useState({
+    totalCompanies: 0,
+    totalContacts: 0,
+    totalDeals: 0,
+    totalActivities: 0,
+    pipelineValue: 0,
+    conversionRate: 0
+  });
   const [showCrmModal, setShowCrmModal] = useState(false);
   const [crmModalType, setCrmModalType] = useState<'company' | 'contact' | 'deal' | 'activity' | null>(null);
   const [editingRecord, setEditingRecord] = useState<Company | Contact | Deal | CRMActivity | null>(null);
   const [crmLoading, setCrmLoading] = useState(false);
+  const [selectedRepForCrm, setSelectedRepForCrm] = useState<string>('');
+  const [showRepCrmModal, setShowRepCrmModal] = useState(false);
 
   // Realtime subscription for call records to keep dashboard in sync
   useEffect(() => {
@@ -313,14 +323,23 @@ const AdminDashboard = () => {
     
     try {
       setCrmLoading(true);
-      const [companies, contacts, deals, activities] = await Promise.all([
+      const [companies, contacts, deals, activities, stats] = await Promise.all([
         getCompanies(profile.id, profile.role),
         getContacts(profile.id, profile.role),
         getDeals(profile.id, profile.role),
-        getActivities(profile.id, profile.role)
+        getActivities(profile.id, profile.role),
+        getCRMDashboardStats(profile.id, profile.role)
       ]);
 
       setCrmData({ companies, contacts, deals, activities });
+      setCrmStats({
+        totalCompanies: stats.totalCompanies,
+        totalContacts: stats.totalContacts,
+        totalDeals: stats.totalDeals,
+        totalActivities: stats.totalActivities,
+        pipelineValue: stats.pipelineValue,
+        conversionRate: stats.conversionRate
+      });
     } catch (error) {
       console.error('Error loading CRM data:', error);
       toast({
@@ -1016,6 +1035,57 @@ const AdminDashboard = () => {
             </Card>
           </div>
 
+          {/* CRM Stats Overview */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-blue-700">Companies</p>
+                    <p className="text-3xl font-bold text-blue-900">{crmStats.totalCompanies}</p>
+                  </div>
+                  <Building2 className="h-8 w-8 text-blue-600" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-green-200 bg-gradient-to-br from-green-50 to-emerald-50">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-green-700">Contacts</p>
+                    <p className="text-3xl font-bold text-green-900">{crmStats.totalContacts}</p>
+                  </div>
+                  <Users className="h-8 w-8 text-green-600" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-purple-200 bg-gradient-to-br from-purple-50 to-violet-50">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-purple-700">Pipeline Value</p>
+                    <p className="text-3xl font-bold text-purple-900">${crmStats.pipelineValue.toLocaleString()}</p>
+                  </div>
+                  <TrendingUp className="h-8 w-8 text-purple-600" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-orange-700">CRM Conversion</p>
+                    <p className="text-3xl font-bold text-orange-900">{crmStats.conversionRate.toFixed(1)}%</p>
+                  </div>
+                  <Target className="h-8 w-8 text-orange-600" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Main Content */}
           <div>
 
@@ -1131,6 +1201,49 @@ const AdminDashboard = () => {
                           </div>
                         </div>
                       ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Sales Rep CRM Access */}
+                <Card className="border-purple-200 bg-gradient-to-br from-purple-50 to-violet-50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-purple-800">
+                      <Building2 className="h-5 w-5" />
+                      Sales Rep CRM Dashboards
+                    </CardTitle>
+                    <CardDescription className="text-purple-600">
+                      View and manage individual sales rep CRM activities
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-4">
+                        <Select value={selectedRepForCrm} onValueChange={setSelectedRepForCrm}>
+                          <SelectTrigger className="w-80">
+                            <SelectValue placeholder="Select a sales rep to view their CRM dashboard" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {repPerformance.map((rep) => (
+                              <SelectItem key={rep.id} value={rep.id}>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs font-medium">
+                                    {rep.name.charAt(0).toUpperCase()}
+                                  </div>
+                                  {rep.name}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button 
+                          onClick={() => setShowRepCrmModal(true)}
+                          disabled={!selectedRepForCrm}
+                          className="bg-purple-600 hover:bg-purple-700"
+                        >
+                          View CRM Dashboard
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -2061,6 +2174,29 @@ const AdminDashboard = () => {
         currentUserId={profile?.id || ''}
         currentUserRole={profile?.role || 'admin'}
       />
+
+      {/* Sales Rep CRM Modal */}
+      <Dialog open={showRepCrmModal} onOpenChange={setShowRepCrmModal}>
+        <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              Sales Rep CRM Dashboard
+            </DialogTitle>
+            <DialogDescription>
+              Viewing CRM data for: {repPerformance.find(rep => rep.id === selectedRepForCrm)?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto">
+            {selectedRepForCrm && (
+              <CRMDashboard
+                userId={selectedRepForCrm}
+                role="rep"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
