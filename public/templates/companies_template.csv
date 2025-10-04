@@ -1,0 +1,3 @@
+name,industry,website,phone,email,address,city,state,country,postal_code,description,annual_revenue,employee_count
+Acme Corp,Technology,https://acme.com,+1-555-0123,contact@acme.com,123 Tech St,San Francisco,CA,USA,94105,Leading technology company,5000000,250
+Global Solutions,Consulting,https://globalsol.com,+1-555-0124,info@globalsol.com,456 Business Ave,New York,NY,USA,10001,Management consulting firm,2000000,100

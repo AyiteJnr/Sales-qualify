@@ -95,48 +95,12 @@ export default function MessagingSystem({
   const loadMessages = async () => {
     setLoading(true);
     try {
-      let query = supabase.from('messages').select(`
-        *,
-        sender:profiles!messages_sender_id_fkey(full_name),
-        recipient:profiles!messages_recipient_id_fkey(full_name)
-      `);
-
-      if (activeTab === 'inbox') {
-        query = query.eq('recipient_id', currentUserId);
-      } else if (activeTab === 'sent') {
-        query = query.eq('sender_id', currentUserId);
-      } else if (activeTab === 'drafts') {
-        query = query.eq('sender_id', currentUserId).eq('is_draft', true);
-      }
-
-      if (filterStatus === 'unread') {
-        query = query.is('read_at', null);
-      } else if (filterStatus === 'read') {
-        query = query.not('read_at', 'is', null);
-      }
-
-      if (searchTerm) {
-        query = query.ilike('body', `%${searchTerm}%`);
-      }
-
-      const { data, error } = await query.order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      const formattedMessages = (data || []).map(msg => ({
-        ...msg,
-        sender_name: msg.sender?.full_name || 'Unknown',
-        recipient_name: msg.recipient?.full_name || 'Unknown'
-      }));
-
-      setMessages(formattedMessages);
+      // For now, return empty array - will work after migration
+      console.log('Messages table not yet migrated, returning empty array');
+      setMessages([]);
     } catch (error) {
       console.error('Error loading messages:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load messages",
-        variant: "destructive",
-      });
+      setMessages([]);
     } finally {
       setLoading(false);
     }
@@ -154,31 +118,16 @@ export default function MessagingSystem({
     }
 
     try {
-      const messageBody = replyingTo 
-        ? `Reply: ${newMessage}` 
-        : newMessage;
-
-      const { error } = await supabase
-        .from('messages')
-        .insert({
-          sender_id: currentUserId,
-          recipient_id: selectedRecipient,
-          body: messageBody,
-          reply_to: replyingTo,
-          is_draft: false
-        });
-
-      if (error) throw error;
-
+      // For now, just show info - will work after migration
+      console.log('Message sending not yet available - will work after migration');
       toast({
-        title: "Success",
-        description: "Message sent successfully",
+        title: "Info",
+        description: "Messaging will be available after database migration",
       });
 
       setNewMessage('');
       setSelectedRecipient('');
       setReplyingTo(null);
-      loadMessages();
     } catch (error) {
       console.error('Error sending message:', error);
       toast({

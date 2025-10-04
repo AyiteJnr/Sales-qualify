@@ -1,0 +1,3 @@
+name,value,currency,stage,probability,close_date,description,notes,source
+Acme Corp - Software License,50000,USD,prospecting,25,2024-02-15,Software licensing deal,High priority client,Website
+Global Solutions - Consulting,25000,USD,qualification,50,2024-01-30,Management consulting project,Follow up needed,Referral

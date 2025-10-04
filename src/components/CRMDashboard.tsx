@@ -30,7 +30,8 @@ import {
   Activity,
   Target,
   MapPin,
-  ExternalLink
+  ExternalLink,
+  Download
 } from 'lucide-react';
 import { 
   CRMDashboardStats, 
@@ -415,21 +416,37 @@ export default function CRMDashboard({ userId, role }: CRMDashboardProps) {
             <Card>
               <CardHeader>
                 <CardTitle>Bulk Upload</CardTitle>
-                <CardDescription>Upload CSV files to import multiple records</CardDescription>
+                <CardDescription>Download templates and upload CSV files to import multiple records</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <Select value={bulkUploadType} onValueChange={(value) => setBulkUploadType(value as any)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type to upload" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="companies">Companies</SelectItem>
-                      <SelectItem value="contacts">Contacts</SelectItem>
-                      <SelectItem value="deals">Deals</SelectItem>
-                      <SelectItem value="activities">Activities</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center gap-2">
+                    <Select value={bulkUploadType} onValueChange={(value) => setBulkUploadType(value as any)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select type to upload" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="companies">Companies</SelectItem>
+                        <SelectItem value="contacts">Contacts</SelectItem>
+                        <SelectItem value="deals">Deals</SelectItem>
+                        <SelectItem value="activities">Activities</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button 
+                      onClick={() => {
+                        const templateUrl = `/templates/${bulkUploadType}_template.csv`;
+                        const link = document.createElement('a');
+                        link.href = templateUrl;
+                        link.download = `${bulkUploadType}_template.csv`;
+                        link.click();
+                      }}
+                      variant="outline"
+                      className="bg-green-600 hover:bg-green-700 text-white border-green-600"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download Template
+                    </Button>
+                  </div>
                   
                   <div className="flex items-center gap-2">
                     <Input

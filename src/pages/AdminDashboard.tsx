@@ -948,7 +948,7 @@ const AdminDashboard = () => {
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
-              onClick={() => navigate('/crm')}
+              onClick={() => setShowRepCrmModal(true)}
               className="text-gray-600"
             >
               <Building2 className="h-4 w-4 mr-2" />
@@ -1155,48 +1155,6 @@ const AdminDashboard = () => {
                   </CardContent>
                 </Card>
 
-                {/* Sales Rep CRM Access */}
-                <Card className="border-purple-200 bg-gradient-to-br from-purple-50 to-violet-50">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-purple-800">
-                      <Building2 className="h-5 w-5" />
-                      Sales Rep CRM Dashboards
-                    </CardTitle>
-                    <CardDescription className="text-purple-600">
-                      View and manage individual sales rep CRM activities
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-4">
-                        <Select value={selectedRepForCrm} onValueChange={setSelectedRepForCrm}>
-                          <SelectTrigger className="w-80">
-                            <SelectValue placeholder="Select a sales rep to view their CRM dashboard" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {repPerformance.map((rep) => (
-                              <SelectItem key={rep.id} value={rep.id}>
-                                <div className="flex items-center gap-2">
-                                  <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs font-medium">
-                                    {rep.name.charAt(0).toUpperCase()}
-                                  </div>
-                                  {rep.name}
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Button 
-                          onClick={() => setShowRepCrmModal(true)}
-                          disabled={!selectedRepForCrm}
-                          className="bg-purple-600 hover:bg-purple-700"
-                        >
-                          View CRM Dashboard
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
               </TabsContent>
 
               <TabsContent value="activity" className="space-y-6">
@@ -2127,22 +2085,56 @@ const AdminDashboard = () => {
 
       {/* Sales Rep CRM Modal */}
       <Dialog open={showRepCrmModal} onOpenChange={setShowRepCrmModal}>
-        <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5" />
-              Sales Rep CRM Dashboard
+              Select Sales Rep CRM Dashboard
             </DialogTitle>
             <DialogDescription>
-              Viewing CRM data for: {repPerformance.find(rep => rep.id === selectedRepForCrm)?.name}
+              Choose a sales rep to view their CRM activities and data
             </DialogDescription>
           </DialogHeader>
-          <div className="flex-1 overflow-auto">
-            {selectedRepForCrm && (
-              <CRMDashboard
-                userId={selectedRepForCrm}
-                role="rep"
-              />
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {repPerformance.map((rep) => (
+                <Card 
+                  key={rep.id} 
+                  className="cursor-pointer hover:shadow-lg transition-shadow border-gray-200 hover:border-purple-300"
+                  onClick={() => {
+                    setSelectedRepForCrm(rep.id);
+                    setShowRepCrmModal(false);
+                    // Open the actual CRM dashboard
+                    navigate('/crm', { state: { repId: rep.id, repName: rep.name } });
+                  }}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center text-white text-lg font-medium">
+                        {rep.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900">{rep.name}</h3>
+                        <p className="text-sm text-gray-600">{rep.email}</p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <Badge variant="outline" className="text-xs">
+                            {rep.conversionRate.toFixed(1)}% Conversion
+                          </Badge>
+                          <Badge variant="outline" className="text-xs">
+                            {rep.totalCalls} Calls
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            {repPerformance.length === 0 && (
+              <div className="text-center py-8">
+                <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500">No sales reps found</p>
+              </div>
             )}
           </div>
         </DialogContent>

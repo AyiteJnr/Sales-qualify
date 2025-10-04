@@ -1,0 +1,4 @@
+type,subject,description,due_date,priority,outcome
+call,Follow up with Acme Corp,Discuss software requirements,2024-01-15T10:00:00,high,Client interested
+meeting,Product demo,Show software features,2024-01-20T14:00:00,medium,Scheduled
+task,Prepare proposal,Create detailed proposal,2024-01-25T09:00:00,high,Completed
