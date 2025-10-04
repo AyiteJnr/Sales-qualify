@@ -272,14 +272,19 @@ const LandingPage = () => {
                   <ArrowRight className="ml-2 h-5 w-5 relative z-10" />
                 </Button>
               </motion.div>
-              <Button 
-                size="lg"
-                variant="outline"
-                className="text-lg px-8 py-4 h-auto border-2"
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
-                <Play className="mr-2 h-5 w-5" />
-                See It In Action
-              </Button>
+                <Button 
+                  size="lg"
+                  variant="outline"
+                  className="text-lg px-8 py-4 h-auto border-2 font-semibold"
+                >
+                  <Play className="mr-2 h-5 w-5" />
+                  See It In Action
+                </Button>
+              </motion.div>
             </motion.div>
 
             {/* Stats */}
@@ -575,14 +580,19 @@ const LandingPage = () => {
                   <ArrowRight className="ml-2 h-5 w-5 relative z-10" />
                 </Button>
               </motion.div>
-              <Button 
-                size="lg"
-                variant="outline"
-                className="border-white text-white hover:bg-white hover:text-blue-600 text-lg px-8 py-4 h-auto"
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
-                <Play className="mr-2 h-5 w-5" />
-                Watch Demo
-              </Button>
+                <Button 
+                  size="lg"
+                  variant="outline"
+                  className="border-white text-white hover:bg-white hover:text-blue-600 text-lg px-8 py-4 h-auto font-semibold"
+                >
+                  <Play className="mr-2 h-5 w-5" />
+                  Watch Demo
+                </Button>
+              </motion.div>
             </div>
           </motion.div>
         </div>

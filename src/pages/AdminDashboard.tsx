@@ -204,10 +204,6 @@ const AdminDashboard = () => {
     pipelineValue: 0,
     conversionRate: 0
   });
-  const [showCrmModal, setShowCrmModal] = useState(false);
-  const [crmModalType, setCrmModalType] = useState<'company' | 'contact' | 'deal' | 'activity' | null>(null);
-  const [editingRecord, setEditingRecord] = useState<Company | Contact | Deal | CRMActivity | null>(null);
-  const [crmLoading, setCrmLoading] = useState(false);
   const [selectedRepForCrm, setSelectedRepForCrm] = useState<string>('');
   const [showRepCrmModal, setShowRepCrmModal] = useState(false);
 
@@ -352,89 +348,6 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleCrmCreate = async (type: 'company' | 'contact' | 'deal' | 'activity', data: any) => {
-    if (!profile?.id) return;
-
-    try {
-      setCrmLoading(true);
-      
-      switch (type) {
-        case 'company':
-          await createCompany(data, profile.id);
-          break;
-        case 'contact':
-          await createContact(data, profile.id);
-          break;
-        case 'deal':
-          await createDeal(data, profile.id);
-          break;
-        case 'activity':
-          await createActivity(data, profile.id);
-          break;
-      }
-
-      toast({
-        title: "Success",
-        description: `${type.charAt(0).toUpperCase() + type.slice(1)} created successfully`,
-      });
-
-      setShowCrmModal(false);
-      setCrmModalType(null);
-      setEditingRecord(null);
-      loadCrmData();
-    } catch (error) {
-      console.error(`Error creating ${type}:`, error);
-      toast({
-        title: "Error",
-        description: `Failed to create ${type}`,
-        variant: "destructive"
-      });
-    } finally {
-      setCrmLoading(false);
-    }
-  };
-
-  const handleCrmUpdate = async (type: 'company' | 'contact' | 'deal' | 'activity', data: any) => {
-    if (!editingRecord) return;
-
-    try {
-      setCrmLoading(true);
-      
-      switch (type) {
-        case 'company':
-          await updateCompany(editingRecord.id, data);
-          break;
-        case 'contact':
-          await updateContact(editingRecord.id, data);
-          break;
-        case 'deal':
-          await updateDeal(editingRecord.id, data);
-          break;
-        case 'activity':
-          await updateActivity(editingRecord.id, data);
-          break;
-      }
-
-      toast({
-        title: "Success",
-        description: `${type.charAt(0).toUpperCase() + type.slice(1)} updated successfully`,
-      });
-
-      setShowCrmModal(false);
-      setCrmModalType(null);
-      setEditingRecord(null);
-      loadCrmData();
-    } catch (error) {
-      console.error(`Error updating ${type}:`, error);
-      toast({
-        title: "Error",
-        description: `Failed to update ${type}`,
-        variant: "destructive"
-      });
-    } finally {
-      setCrmLoading(false);
-    }
-  };
 
   const handleCrmDelete = async (type: 'company' | 'contact' | 'deal' | 'activity', id: string) => {
     try {
@@ -2003,77 +1916,6 @@ const AdminDashboard = () => {
         </DialogContent>
       </Dialog>
 
-      {/* CRM Modals */}
-      <Dialog open={showCrmModal} onOpenChange={setShowCrmModal}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {editingRecord ? 'Edit' : 'Create'} {crmModalType?.charAt(0).toUpperCase() + crmModalType?.slice(1)}
-            </DialogTitle>
-            <DialogDescription>
-              {editingRecord ? 'Update the information below' : 'Fill in the information to create a new record'}
-            </DialogDescription>
-          </DialogHeader>
-          
-          {crmModalType === 'company' && (
-            <CompanyForm
-              company={editingRecord as Company}
-              onSave={(data) => editingRecord ? handleCrmUpdate('company', data) : handleCrmCreate('company', data)}
-              onCancel={() => {
-                setShowCrmModal(false);
-                setCrmModalType(null);
-                setEditingRecord(null);
-              }}
-              loading={crmLoading}
-            />
-          )}
-          
-          {crmModalType === 'contact' && (
-            <ContactForm
-              contact={editingRecord as Contact}
-              companies={crmData.companies}
-              onSave={(data) => editingRecord ? handleCrmUpdate('contact', data) : handleCrmCreate('contact', data)}
-              onCancel={() => {
-                setShowCrmModal(false);
-                setCrmModalType(null);
-                setEditingRecord(null);
-              }}
-              loading={crmLoading}
-            />
-          )}
-          
-          {crmModalType === 'deal' && (
-            <DealForm
-              deal={editingRecord as Deal}
-              companies={crmData.companies}
-              contacts={crmData.contacts}
-              onSave={(data) => editingRecord ? handleCrmUpdate('deal', data) : handleCrmCreate('deal', data)}
-              onCancel={() => {
-                setShowCrmModal(false);
-                setCrmModalType(null);
-                setEditingRecord(null);
-              }}
-              loading={crmLoading}
-            />
-          )}
-          
-          {crmModalType === 'activity' && (
-            <ActivityForm
-              activity={editingRecord as CRMActivity}
-              companies={crmData.companies}
-              contacts={crmData.contacts}
-              deals={crmData.deals}
-              onSave={(data) => editingRecord ? handleCrmUpdate('activity', data) : handleCrmCreate('activity', data)}
-              onCancel={() => {
-                setShowCrmModal(false);
-                setCrmModalType(null);
-                setEditingRecord(null);
-              }}
-              loading={crmLoading}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
 
       {/* Messaging System */}
       <MessagingSystem

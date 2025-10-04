@@ -31,7 +31,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import CRMDashboard from '@/components/CRMDashboard';
 import MessagingSystem from '@/components/MessagingSystem';
-import { CompanyForm, ContactForm, DealForm, ActivityForm } from '@/components/CRMForms';
 import { 
   getCompanies, 
   getContacts, 
@@ -55,10 +54,6 @@ import {
   Contact, 
   Deal, 
   Activity as CRMActivity,
-  CompanyFormData,
-  ContactFormData,
-  DealFormData,
-  ActivityFormData
 } from '@/integrations/supabase/crm-types';
 
 interface SalesStats {
@@ -136,8 +131,6 @@ const SalesDashboard = () => {
     pipelineValue: 0,
     conversionRate: 0
   });
-  const [showCrmModal, setShowCrmModal] = useState(false);
-  const [crmModalType, setCrmModalType] = useState<'company' | 'contact' | 'deal' | 'activity' | null>(null);
   const [editingRecord, setEditingRecord] = useState<Company | Contact | Deal | CRMActivity | null>(null);
   const [crmLoading, setCrmLoading] = useState(false);
 
