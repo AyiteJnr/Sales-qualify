@@ -23,7 +23,8 @@ import {
   ArrowRight,
   BarChart3,
   FileText,
-  Star
+  Star,
+  Building2
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
