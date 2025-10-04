@@ -1035,56 +1035,6 @@ const AdminDashboard = () => {
             </Card>
           </div>
 
-          {/* CRM Stats Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-blue-700">Companies</p>
-                    <p className="text-3xl font-bold text-blue-900">{crmStats.totalCompanies}</p>
-                  </div>
-                  <Building2 className="h-8 w-8 text-blue-600" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-green-200 bg-gradient-to-br from-green-50 to-emerald-50">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-green-700">Contacts</p>
-                    <p className="text-3xl font-bold text-green-900">{crmStats.totalContacts}</p>
-                  </div>
-                  <Users className="h-8 w-8 text-green-600" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-purple-200 bg-gradient-to-br from-purple-50 to-violet-50">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-purple-700">Pipeline Value</p>
-                    <p className="text-3xl font-bold text-purple-900">${crmStats.pipelineValue.toLocaleString()}</p>
-                  </div>
-                  <TrendingUp className="h-8 w-8 text-purple-600" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-orange-700">CRM Conversion</p>
-                    <p className="text-3xl font-bold text-orange-900">{crmStats.conversionRate.toFixed(1)}%</p>
-                  </div>
-                  <Target className="h-8 w-8 text-orange-600" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
 
           {/* Main Content */}
           <div>

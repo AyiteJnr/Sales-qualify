@@ -298,6 +298,9 @@ export const getCRMDashboardStats = async (userId: string, role: string): Promis
       };
     }
 
+    // If some tables exist but not all, we'll handle gracefully
+    console.log('CRM tables status:', { companiesExists, contactsExists, dealsExists, activitiesExists });
+
     const baseQuery = role === 'admin' ? {} : { assigned_to: userId };
     
     // Get basic counts with error handling
@@ -1029,6 +1032,49 @@ export const getRevenueData = async (userId: string, role: string, months: numbe
       .slice(-months);
   } catch (error) {
     console.error('Error fetching revenue data:', error);
+    throw error;
+  }
+};
+
+// New function to sync CRM data back to main dashboard
+export const syncCRMToMainDashboard = async (userId: string, role: string): Promise<any> => {
+  try {
+    const [companies, contacts, deals, activities] = await Promise.all([
+      getCompanies(userId, role),
+      getContacts(userId, role),
+      getDeals(userId, role),
+      getActivities(userId, role)
+    ]);
+
+    // Convert CRM data to main dashboard format
+    const crmLeads = companies.map(company => ({
+      id: company.id,
+      name: company.name,
+      email: company.email,
+      phone: company.phone,
+      company: company.name,
+      status: 'active',
+      source: 'CRM',
+      created_at: company.created_at,
+      updated_at: company.updated_at,
+      assigned_to: company.assigned_to,
+      is_hot_deal: deals.some(deal => deal.company_id === company.id && deal.stage === 'prospecting'),
+      qualification_status: deals.some(deal => deal.company_id === company.id) ? 'hot' : 'cold'
+    }));
+
+    return {
+      crmLeads,
+      crmStats: {
+        totalCompanies: companies.length,
+        totalContacts: contacts.length,
+        totalDeals: deals.length,
+        totalActivities: activities.length,
+        pipelineValue: deals.reduce((sum, deal) => sum + (deal.value || 0), 0),
+        conversionRate: deals.length > 0 ? (deals.filter(d => d.status === 'won').length / deals.length) * 100 : 0
+      }
+    };
+  } catch (error) {
+    console.error('Error syncing CRM to main dashboard:', error);
     throw error;
   }
 };

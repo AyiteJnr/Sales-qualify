@@ -7,6 +7,8 @@ create table if not exists public.messages (
   recipient_id uuid not null references public.profiles(id) on delete cascade,
   body text not null,
   read_at timestamptz,
+  is_draft boolean default false,
+  reply_to uuid references public.messages(id) on delete set null,
   created_at timestamptz not null default now()
 );
 

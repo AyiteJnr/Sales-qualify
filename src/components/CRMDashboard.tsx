@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Building2, 
   Users, 
@@ -23,7 +25,12 @@ import {
   Trash2,
   CheckCircle,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Upload,
+  Activity,
+  Target,
+  MapPin,
+  ExternalLink
 } from 'lucide-react';
 import { 
   CRMDashboardStats, 
@@ -62,6 +69,10 @@ export default function CRMDashboard({ userId, role }: CRMDashboardProps) {
   const [activeTab, setActiveTab] = useState('overview');
   const [searchTerm, setSearchTerm] = useState('');
   const [syncing, setSyncing] = useState(false);
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
+  const [bulkUploadType, setBulkUploadType] = useState<'companies' | 'contacts' | 'deals' | 'activities'>('companies');
+  const [bulkUploadFile, setBulkUploadFile] = useState<File | null>(null);
+  const [bulkUploading, setBulkUploading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -115,6 +126,128 @@ export default function CRMDashboard({ userId, role }: CRMDashboardProps) {
       });
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleBulkUpload = async () => {
+    if (!bulkUploadFile) {
+      toast({
+        title: "Error",
+        description: "Please select a file to upload",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setBulkUploading(true);
+      
+      // Parse CSV file
+      const text = await bulkUploadFile.text();
+      const lines = text.split('\n').filter(line => line.trim());
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const data = lines.slice(1).map(line => {
+        const values = line.split(',').map(v => v.trim());
+        const obj: any = {};
+        headers.forEach((header, index) => {
+          obj[header] = values[index] || '';
+        });
+        return obj;
+      });
+
+      // Convert to appropriate format based on type
+      const formattedData = data.map(item => {
+        switch (bulkUploadType) {
+          case 'companies':
+            return {
+              name: item.name || item.company_name || 'Unknown Company',
+              industry: item.industry || 'Unknown',
+              website: item.website || '',
+              phone: item.phone || '',
+              email: item.email || '',
+              address: item.address || '',
+              city: item.city || '',
+              state: item.state || '',
+              country: item.country || '',
+              postal_code: item.postal_code || item.zip_code || '',
+              description: item.description || '',
+              annual_revenue: parseFloat(item.annual_revenue) || 0,
+              employee_count: parseInt(item.employee_count) || 0,
+              assigned_to: userId,
+              created_by: userId
+            };
+          case 'contacts':
+            return {
+              first_name: item.first_name || item.name?.split(' ')[0] || 'Unknown',
+              last_name: item.last_name || item.name?.split(' ').slice(1).join(' ') || 'Contact',
+              email: item.email || '',
+              phone: item.phone || '',
+              mobile: item.mobile || '',
+              job_title: item.job_title || item.title || '',
+              department: item.department || '',
+              address: item.address || '',
+              city: item.city || '',
+              state: item.state || '',
+              country: item.country || '',
+              postal_code: item.postal_code || item.zip_code || '',
+              notes: item.notes || '',
+              lead_source: item.lead_source || item.source || '',
+              status: 'active',
+              assigned_to: userId,
+              created_by: userId
+            };
+          case 'deals':
+            return {
+              name: item.name || item.deal_name || 'New Deal',
+              value: parseFloat(item.value) || 0,
+              currency: item.currency || 'USD',
+              stage: item.stage || 'prospecting',
+              probability: parseInt(item.probability) || 25,
+              close_date: item.close_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              description: item.description || '',
+              notes: item.notes || '',
+              source: item.source || item.lead_source || '',
+              status: 'open',
+              assigned_to: userId,
+              created_by: userId
+            };
+          case 'activities':
+            return {
+              type: item.type || 'task',
+              subject: item.subject || item.title || 'New Activity',
+              description: item.description || '',
+              due_date: item.due_date || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+              status: 'pending',
+              priority: item.priority || 'medium',
+              outcome: item.outcome || '',
+              assigned_to: userId,
+              created_by: userId
+            };
+          default:
+            return item;
+        }
+      });
+
+      // Bulk insert
+      await bulkImportLeadsToCRM(formattedData, userId);
+      
+      toast({
+        title: "Success",
+        description: `Successfully uploaded ${formattedData.length} ${bulkUploadType}`,
+      });
+      
+      setShowBulkUpload(false);
+      setBulkUploadFile(null);
+      await loadDashboardData();
+    } catch (error) {
+      console.error('Error bulk uploading:', error);
+      toast({
+        title: "Error",
+        description: "Failed to upload file",
+        variant: "destructive",
+      });
+    } finally {
+      setBulkUploading(false);
     }
   };
 
@@ -214,32 +347,82 @@ export default function CRMDashboard({ userId, role }: CRMDashboardProps) {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
-          {/* Sync Leads Button */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Lead Integration</CardTitle>
-              <CardDescription>Sync existing leads from your database to CRM</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                onClick={syncLeads} 
-                disabled={syncing}
-                className="w-full"
-              >
-                {syncing ? (
-                  <>
-                    <Clock className="h-4 w-4 mr-2 animate-spin" />
-                    Syncing Leads...
-                  </>
-                ) : (
-                  <>
-                    <TrendingUp className="h-4 w-4 mr-2" />
-                    Sync Leads to CRM
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
+          {/* Lead Integration & Bulk Upload */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Lead Integration</CardTitle>
+                <CardDescription>Sync existing leads from your database to CRM</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button 
+                  onClick={syncLeads} 
+                  disabled={syncing}
+                  className="w-full"
+                >
+                  {syncing ? (
+                    <>
+                      <Clock className="h-4 w-4 mr-2 animate-spin" />
+                      Syncing Leads...
+                    </>
+                  ) : (
+                    <>
+                      <TrendingUp className="h-4 w-4 mr-2" />
+                      Sync Leads to CRM
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Bulk Upload</CardTitle>
+                <CardDescription>Upload CSV files to import multiple records</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <Select value={bulkUploadType} onValueChange={(value) => setBulkUploadType(value as any)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type to upload" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="companies">Companies</SelectItem>
+                      <SelectItem value="contacts">Contacts</SelectItem>
+                      <SelectItem value="deals">Deals</SelectItem>
+                      <SelectItem value="activities">Activities</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="file"
+                      accept=".csv"
+                      onChange={(e) => setBulkUploadFile(e.target.files?.[0] || null)}
+                      className="flex-1"
+                    />
+                    <Button 
+                      onClick={handleBulkUpload}
+                      disabled={!bulkUploadFile || bulkUploading}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      {bulkUploading ? (
+                        <>
+                          <Clock className="h-4 w-4 mr-2 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4 mr-2" />
+                          Upload
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Recent Deals */}
