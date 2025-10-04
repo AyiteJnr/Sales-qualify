@@ -609,6 +609,14 @@ const SalesDashboard = () => {
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
+              onClick={() => navigate('/crm')}
+              className="text-gray-600"
+            >
+              <Building2 className="h-4 w-4 mr-2" />
+              CRM
+            </Button>
+            <Button
+              variant="outline"
               onClick={() => {
                 const messagesSection = document.querySelector('[data-messages-section]');
                 if (messagesSection) {
@@ -1177,119 +1185,9 @@ const SalesDashboard = () => {
             </Card>
           </motion.div>
 
-          {/* CRM Section */}
-          <motion.div variants={itemVariants} className="mt-8">
-            <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-0 shadow-lg">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2 text-xl text-blue-700">
-                      <Users className="h-6 w-6" />
-                      CRM Dashboard
-                    </CardTitle>
-                    <CardDescription className="text-blue-600">
-                      Manage your customer relationships, deals, and activities
-                    </CardDescription>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button onClick={() => openCrmModal('company')} size="sm">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Company
-                    </Button>
-                    <Button onClick={() => openCrmModal('contact')} size="sm">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Contact
-                    </Button>
-                    <Button onClick={() => openCrmModal('deal')} size="sm">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Deal
-                    </Button>
-                    <Button onClick={() => openCrmModal('activity')} size="sm">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Activity
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <CRMDashboard userId={user?.id || ''} role="rep" />
-              </CardContent>
-            </Card>
-          </motion.div>
         </motion.div>
       </div>
 
-      {/* CRM Modals */}
-      <Dialog open={showCrmModal} onOpenChange={setShowCrmModal}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {editingRecord ? 'Edit' : 'Create'} {crmModalType?.charAt(0).toUpperCase() + crmModalType?.slice(1)}
-            </DialogTitle>
-            <DialogDescription>
-              {editingRecord ? 'Update the information below' : 'Fill in the information to create a new record'}
-            </DialogDescription>
-          </DialogHeader>
-          
-          {crmModalType === 'company' && (
-            <CompanyForm
-              company={editingRecord as Company}
-              onSave={(data) => editingRecord ? handleCrmUpdate('company', data) : handleCrmCreate('company', data)}
-              onCancel={() => {
-                setShowCrmModal(false);
-                setCrmModalType(null);
-                setEditingRecord(null);
-              }}
-              loading={crmLoading}
-            />
-          )}
-          
-          {crmModalType === 'contact' && (
-            <ContactForm
-              contact={editingRecord as Contact}
-              companies={crmData.companies}
-              onSave={(data) => editingRecord ? handleCrmUpdate('contact', data) : handleCrmCreate('contact', data)}
-              onCancel={() => {
-                setShowCrmModal(false);
-                setCrmModalType(null);
-                setEditingRecord(null);
-              }}
-              loading={crmLoading}
-            />
-          )}
-          
-          {crmModalType === 'deal' && (
-            <DealForm
-              deal={editingRecord as Deal}
-              companies={crmData.companies}
-              contacts={crmData.contacts}
-              onSave={(data) => editingRecord ? handleCrmUpdate('deal', data) : handleCrmCreate('deal', data)}
-              onCancel={() => {
-                setShowCrmModal(false);
-                setCrmModalType(null);
-                setEditingRecord(null);
-              }}
-              loading={crmLoading}
-            />
-          )}
-          
-          {crmModalType === 'activity' && (
-            <ActivityForm
-              activity={editingRecord as CRMActivity}
-              companies={crmData.companies}
-              contacts={crmData.contacts}
-              deals={crmData.deals}
-              onSave={(data) => editingRecord ? handleCrmUpdate('activity', data) : handleCrmCreate('activity', data)}
-              onCancel={() => {
-                setShowCrmModal(false);
-                setCrmModalType(null);
-                setEditingRecord(null);
-              }}
-              loading={crmLoading}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

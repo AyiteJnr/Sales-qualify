@@ -17,6 +17,7 @@ import EnhancedQualificationForm from "./pages/EnhancedQualificationForm";
 import StartQualification from "./pages/StartQualification";
 import CallHistory from "./pages/CallHistory";
 import AdminSettings from "./pages/AdminSettings";
+import CRMPage from "./pages/CRMPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -123,6 +124,13 @@ const App = () => (
             <Route path="/admin" element={
               <RoleBasedRoute>
                 <AdminSettings />
+              </RoleBasedRoute>
+            } />
+            
+            {/* CRM Page */}
+            <Route path="/crm" element={
+              <RoleBasedRoute>
+                <CRMPage />
               </RoleBasedRoute>
             } />
             

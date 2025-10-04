@@ -30,7 +30,8 @@ import {
   Eye,
   AlertCircle,
   Loader2,
-  Star
+  Star,
+  Building2
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -925,6 +926,14 @@ const AdminDashboard = () => {
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
+              onClick={() => navigate('/crm')}
+              className="text-gray-600"
+            >
+              <Building2 className="h-4 w-4 mr-2" />
+              CRM
+            </Button>
+            <Button
+              variant="outline"
               onClick={() => setShowMessagesModal(true)}
               className="relative"
             >
@@ -1008,9 +1017,8 @@ const AdminDashboard = () => {
           <div>
 
             <Tabs defaultValue="overview" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-6 bg-gray-100 p-1 rounded-lg">
+              <TabsList className="grid w-full grid-cols-5 bg-gray-100 p-1 rounded-lg">
                 <TabsTrigger value="overview" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Overview</TabsTrigger>
-                <TabsTrigger value="crm" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">CRM</TabsTrigger>
                 <TabsTrigger value="deals" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Deals</TabsTrigger>
                 <TabsTrigger value="performance" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Performance</TabsTrigger>
                 <TabsTrigger value="leads" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Lead Management</TabsTrigger>
@@ -1156,34 +1164,6 @@ const AdminDashboard = () => {
                 </Card>
               </TabsContent>
 
-              <TabsContent value="crm" className="space-y-6">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900">CRM Dashboard</h2>
-                    <p className="text-gray-600">Manage your customer relationships, deals, and activities</p>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button onClick={() => openCrmModal('company')}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Company
-                    </Button>
-                    <Button onClick={() => openCrmModal('contact')}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Contact
-                    </Button>
-                    <Button onClick={() => openCrmModal('deal')}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Deal
-                    </Button>
-                    <Button onClick={() => openCrmModal('activity')}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Activity
-                    </Button>
-                  </div>
-                </div>
-
-                <CRMDashboard userId={profile?.id || ''} role={profile?.role || 'admin'} />
-              </TabsContent>
 
               <TabsContent value="deals" className="space-y-6">
                 <div className="grid gap-6">
