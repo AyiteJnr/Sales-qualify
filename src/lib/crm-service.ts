@@ -18,20 +18,294 @@ import {
   CRMFilter
 } from '@/integrations/supabase/crm-types';
 
+// Helper function to check if table exists
+const checkTableExists = async (tableName: string): Promise<boolean> => {
+  try {
+    const { data } = await supabase
+      .from('information_schema.tables')
+      .select('table_name')
+      .eq('table_schema', 'public')
+      .eq('table_name', tableName);
+    return data && data.length > 0;
+  } catch {
+    return false;
+  }
+};
+
+// =============================================
+// LEAD INTEGRATION
+// =============================================
+
+export const syncLeadsToCRM = async (userId: string, role: string): Promise<void> => {
+  try {
+    // Check if CRM tables exist
+    const [companiesExists, contactsExists] = await Promise.all([
+      checkTableExists('companies'),
+      checkTableExists('contacts')
+    ]);
+
+    if (!companiesExists || !contactsExists) {
+      console.log('CRM tables not found, skipping lead sync');
+      return;
+    }
+
+    // Get all leads from the clients table
+    const { data: leads, error: leadsError } = await supabase
+      .from('clients')
+      .select('*');
+
+    if (leadsError) throw leadsError;
+
+    if (!leads || leads.length === 0) {
+      console.log('No leads found to sync');
+      return;
+    }
+
+    // Process each lead
+    for (const lead of leads) {
+      try {
+        // Create or update company
+        const companyData = {
+          name: lead.company_name || lead.name || 'Unknown Company',
+          industry: lead.industry || 'Unknown',
+          website: lead.website || '',
+          phone: lead.phone || '',
+          email: lead.email || '',
+          address: lead.address || '',
+          city: lead.city || '',
+          state: lead.state || '',
+          zip_code: lead.zip_code || '',
+          country: lead.country || '',
+          assigned_to: lead.assigned_to || userId,
+          created_by: userId,
+          status: 'active'
+        };
+
+        const { data: existingCompany } = await supabase
+          .from('companies')
+          .select('id')
+          .eq('name', companyData.name)
+          .single();
+
+        let companyId: string;
+        if (existingCompany) {
+          companyId = existingCompany.id;
+        } else {
+          const { data: newCompany, error: companyError } = await supabase
+            .from('companies')
+            .insert(companyData)
+            .select('id')
+            .single();
+
+          if (companyError) throw companyError;
+          companyId = newCompany.id;
+        }
+
+        // Create or update contact
+        const contactData = {
+          first_name: lead.first_name || lead.name?.split(' ')[0] || 'Unknown',
+          last_name: lead.last_name || lead.name?.split(' ').slice(1).join(' ') || 'Contact',
+          email: lead.email || '',
+          phone: lead.phone || '',
+          title: lead.title || '',
+          company_id: companyId,
+          assigned_to: lead.assigned_to || userId,
+          created_by: userId,
+          status: 'active'
+        };
+
+        const { data: existingContact } = await supabase
+          .from('contacts')
+          .select('id')
+          .eq('email', contactData.email)
+          .eq('company_id', companyId)
+          .single();
+
+        if (!existingContact) {
+          await supabase
+            .from('contacts')
+            .insert(contactData);
+        }
+
+        // Create deal if it's a hot lead
+        if (lead.is_hot_deal && checkTableExists('deals')) {
+          const dealData = {
+            name: `${lead.name || 'Lead'} - ${lead.company_name || 'Company'}`,
+            value: lead.deal_value || 0,
+            stage: 'prospecting',
+            status: 'open',
+            probability: 25,
+            expected_close_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+            company_id: companyId,
+            contact_id: existingContact?.id,
+            assigned_to: lead.assigned_to || userId,
+            created_by: userId
+          };
+
+          const { data: existingDeal } = await supabase
+            .from('deals')
+            .select('id')
+            .eq('name', dealData.name)
+            .eq('company_id', companyId)
+            .single();
+
+          if (!existingDeal) {
+            await supabase
+              .from('deals')
+              .insert(dealData);
+          }
+        }
+
+      } catch (error) {
+        console.error(`Error syncing lead ${lead.id}:`, error);
+        // Continue with next lead
+      }
+    }
+
+    console.log(`Successfully synced ${leads.length} leads to CRM`);
+  } catch (error) {
+    console.error('Error syncing leads to CRM:', error);
+    throw error;
+  }
+};
+
+export const bulkImportLeadsToCRM = async (
+  leads: Array<{
+    name: string;
+    email: string;
+    phone?: string;
+    company_name?: string;
+    industry?: string;
+    title?: string;
+    assigned_to?: string;
+  }>,
+  userId: string
+): Promise<void> => {
+  try {
+    // Check if CRM tables exist
+    const [companiesExists, contactsExists] = await Promise.all([
+      checkTableExists('companies'),
+      checkTableExists('contacts')
+    ]);
+
+    if (!companiesExists || !contactsExists) {
+      throw new Error('CRM tables not found');
+    }
+
+    // Process each lead
+    for (const lead of leads) {
+      try {
+        // Create or update company
+        const companyData = {
+          name: lead.company_name || 'Unknown Company',
+          industry: lead.industry || 'Unknown',
+          email: lead.email,
+          phone: lead.phone || '',
+          assigned_to: lead.assigned_to || userId,
+          created_by: userId,
+          status: 'active'
+        };
+
+        const { data: existingCompany } = await supabase
+          .from('companies')
+          .select('id')
+          .eq('name', companyData.name)
+          .single();
+
+        let companyId: string;
+        if (existingCompany) {
+          companyId = existingCompany.id;
+        } else {
+          const { data: newCompany, error: companyError } = await supabase
+            .from('companies')
+            .insert(companyData)
+            .select('id')
+            .single();
+
+          if (companyError) throw companyError;
+          companyId = newCompany.id;
+        }
+
+        // Create contact
+        const contactData = {
+          first_name: lead.name.split(' ')[0] || 'Unknown',
+          last_name: lead.name.split(' ').slice(1).join(' ') || 'Contact',
+          email: lead.email,
+          phone: lead.phone || '',
+          title: lead.title || '',
+          company_id: companyId,
+          assigned_to: lead.assigned_to || userId,
+          created_by: userId,
+          status: 'active'
+        };
+
+        const { data: existingContact } = await supabase
+          .from('contacts')
+          .select('id')
+          .eq('email', contactData.email)
+          .eq('company_id', companyId)
+          .single();
+
+        if (!existingContact) {
+          await supabase
+            .from('contacts')
+            .insert(contactData);
+        }
+
+      } catch (error) {
+        console.error(`Error importing lead ${lead.name}:`, error);
+        // Continue with next lead
+      }
+    }
+
+    console.log(`Successfully imported ${leads.length} leads to CRM`);
+  } catch (error) {
+    console.error('Error bulk importing leads to CRM:', error);
+    throw error;
+  }
+};
+
 // =============================================
 // DASHBOARD STATS
 // =============================================
 
 export const getCRMDashboardStats = async (userId: string, role: string): Promise<CRMDashboardStats> => {
   try {
+    // Check if CRM tables exist, if not return empty stats
+    const [companiesExists, contactsExists, dealsExists, activitiesExists] = await Promise.all([
+      checkTableExists('companies'),
+      checkTableExists('contacts'),
+      checkTableExists('deals'),
+      checkTableExists('activities')
+    ]);
+
+    if (!companiesExists && !contactsExists && !dealsExists && !activitiesExists) {
+      console.log('CRM tables not found, returning empty stats');
+      return {
+        totalCompanies: 0,
+        totalContacts: 0,
+        totalDeals: 0,
+        totalActivities: 0,
+        openDeals: 0,
+        wonDeals: 0,
+        lostDeals: 0,
+        totalRevenue: 0,
+        pipelineValue: 0,
+        avgDealSize: 0,
+        conversionRate: 0,
+        activitiesThisWeek: 0,
+        activitiesToday: 0
+      };
+    }
+
     const baseQuery = role === 'admin' ? {} : { assigned_to: userId };
     
-    // Get basic counts
+    // Get basic counts with error handling
     const [companiesResult, contactsResult, dealsResult, activitiesResult] = await Promise.all([
-      supabase.from('companies').select('id', { count: 'exact' }).match(baseQuery),
-      supabase.from('contacts').select('id', { count: 'exact' }).match(baseQuery),
-      supabase.from('deals').select('id, status, value', { count: 'exact' }).match(baseQuery),
-      supabase.from('activities').select('id, created_at', { count: 'exact' }).match(baseQuery)
+      supabase.from('companies').select('id', { count: 'exact' }).match(baseQuery).catch(() => ({ data: [], count: 0, error: null })),
+      supabase.from('contacts').select('id', { count: 'exact' }).match(baseQuery).catch(() => ({ data: [], count: 0, error: null })),
+      supabase.from('deals').select('id, status, value', { count: 'exact' }).match(baseQuery).catch(() => ({ data: [], count: 0, error: null })),
+      supabase.from('activities').select('id, created_at', { count: 'exact' }).match(baseQuery).catch(() => ({ data: [], count: 0, error: null }))
     ]);
 
     const totalCompanies = companiesResult.count || 0;
@@ -90,6 +364,12 @@ export const getCRMDashboardStats = async (userId: string, role: string): Promis
 
 export const getCompanies = async (userId: string, role: string, filter?: CRMFilter): Promise<Company[]> => {
   try {
+    // Check if companies table exists
+    if (!(await checkTableExists('companies'))) {
+      console.log('Companies table not found, returning empty array');
+      return [];
+    }
+
     let query = supabase.from('companies').select('*');
     
     if (role !== 'admin') {
@@ -106,11 +386,14 @@ export const getCompanies = async (userId: string, role: string, filter?: CRMFil
 
     const { data, error } = await query.order('created_at', { ascending: false });
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching companies:', error);
+      return [];
+    }
     return data || [];
   } catch (error) {
     console.error('Error fetching companies:', error);
-    throw error;
+    return [];
   }
 };
 
@@ -132,6 +415,11 @@ export const getCompany = async (id: string): Promise<Company | null> => {
 
 export const createCompany = async (companyData: CompanyFormData, userId: string): Promise<Company> => {
   try {
+    // Check if companies table exists
+    if (!(await checkTableExists('companies'))) {
+      throw new Error('Companies table not found. Please run database migrations first.');
+    }
+
     const { data, error } = await supabase
       .from('companies')
       .insert({
@@ -187,6 +475,12 @@ export const deleteCompany = async (id: string): Promise<void> => {
 
 export const getContacts = async (userId: string, role: string, filter?: CRMFilter): Promise<Contact[]> => {
   try {
+    // Check if contacts table exists
+    if (!(await checkTableExists('contacts'))) {
+      console.log('Contacts table not found, returning empty array');
+      return [];
+    }
+
     let query = supabase.from('contacts').select(`
       *,
       company:companies(*)
@@ -210,11 +504,14 @@ export const getContacts = async (userId: string, role: string, filter?: CRMFilt
 
     const { data, error } = await query.order('created_at', { ascending: false });
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching contacts:', error);
+      return [];
+    }
     return data || [];
   } catch (error) {
     console.error('Error fetching contacts:', error);
-    throw error;
+    return [];
   }
 };
 
@@ -239,6 +536,11 @@ export const getContact = async (id: string): Promise<Contact | null> => {
 
 export const createContact = async (contactData: ContactFormData, userId: string): Promise<Contact> => {
   try {
+    // Check if contacts table exists
+    if (!(await checkTableExists('contacts'))) {
+      throw new Error('Contacts table not found. Please run database migrations first.');
+    }
+
     const { data, error } = await supabase
       .from('contacts')
       .insert({
@@ -300,6 +602,12 @@ export const deleteContact = async (id: string): Promise<void> => {
 
 export const getDeals = async (userId: string, role: string, filter?: CRMFilter): Promise<Deal[]> => {
   try {
+    // Check if deals table exists
+    if (!(await checkTableExists('deals'))) {
+      console.log('Deals table not found, returning empty array');
+      return [];
+    }
+
     let query = supabase.from('deals').select(`
       *,
       company:companies(*),
@@ -332,11 +640,14 @@ export const getDeals = async (userId: string, role: string, filter?: CRMFilter)
 
     const { data, error } = await query.order('created_at', { ascending: false });
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching deals:', error);
+      return [];
+    }
     return data || [];
   } catch (error) {
     console.error('Error fetching deals:', error);
-    throw error;
+    return [];
   }
 };
 
@@ -366,6 +677,11 @@ export const getDeal = async (id: string): Promise<Deal | null> => {
 
 export const createDeal = async (dealData: DealFormData, userId: string): Promise<Deal> => {
   try {
+    // Check if deals table exists
+    if (!(await checkTableExists('deals'))) {
+      throw new Error('Deals table not found. Please run database migrations first.');
+    }
+
     const { data, error } = await supabase
       .from('deals')
       .insert({
@@ -437,6 +753,12 @@ export const deleteDeal = async (id: string): Promise<void> => {
 
 export const getActivities = async (userId: string, role: string, filter?: CRMFilter): Promise<Activity[]> => {
   try {
+    // Check if activities table exists
+    if (!(await checkTableExists('activities'))) {
+      console.log('Activities table not found, returning empty array');
+      return [];
+    }
+
     let query = supabase.from('activities').select(`
       *,
       company:companies(*),
@@ -470,11 +792,14 @@ export const getActivities = async (userId: string, role: string, filter?: CRMFi
 
     const { data, error } = await query.order('due_date', { ascending: true, nullsLast: true });
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching activities:', error);
+      return [];
+    }
     return data || [];
   } catch (error) {
     console.error('Error fetching activities:', error);
-    throw error;
+    return [];
   }
 };
 
@@ -501,6 +826,11 @@ export const getActivity = async (id: string): Promise<Activity | null> => {
 
 export const createActivity = async (activityData: ActivityFormData, userId: string): Promise<Activity> => {
   try {
+    // Check if activities table exists
+    if (!(await checkTableExists('activities'))) {
+      throw new Error('Activities table not found. Please run database migrations first.');
+    }
+
     const { data, error } = await supabase
       .from('activities')
       .insert({

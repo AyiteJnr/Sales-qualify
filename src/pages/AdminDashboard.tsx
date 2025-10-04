@@ -40,6 +40,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format } from 'date-fns';
 import CRMDashboard from '@/components/CRMDashboard';
+import MessagingSystem from '@/components/MessagingSystem';
 import { CompanyForm, ContactForm, DealForm, ActivityForm } from '@/components/CRMForms';
 import { 
   getCompanies, 
@@ -185,6 +186,7 @@ const AdminDashboard = () => {
   const [selectedRepForMsg, setSelectedRepForMsg] = useState<string>('');
   const [dealFilter, setDealFilter] = useState<'all' | 'hot' | 'warm' | 'cold'>('all');
   const [showMessagesModal, setShowMessagesModal] = useState(false);
+  const [showMessagingSystem, setShowMessagingSystem] = useState(false);
   
   // CRM State
   const [crmData, setCrmData] = useState({
@@ -934,10 +936,10 @@ const AdminDashboard = () => {
             </Button>
             <Button
               variant="outline"
-              onClick={() => setShowMessagesModal(true)}
+              onClick={() => setShowMessagingSystem(true)}
               className="relative"
             >
-              <Phone className="h-4 w-4 mr-2" />
+              <MessageSquare className="h-4 w-4 mr-2" />
               Messages
               {inbox.length > 0 && (
                 <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-xs">
@@ -2050,6 +2052,14 @@ const AdminDashboard = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Messaging System */}
+      <MessagingSystem
+        isOpen={showMessagingSystem}
+        onClose={() => setShowMessagingSystem(false)}
+        currentUserId={profile?.id || ''}
+        currentUserRole={profile?.role || 'admin'}
+      />
     </div>
   );
 };

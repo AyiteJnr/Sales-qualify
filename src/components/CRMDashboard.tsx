@@ -36,11 +36,13 @@ import {
   PRIORITY_LEVELS
 } from '@/integrations/supabase/crm-types';
 import { 
-  getCRMDashboardStats, 
-  getCompanies, 
-  getContacts, 
-  getDeals, 
-  getActivities 
+  getCRMDashboardStats,
+  getCompanies,
+  getContacts,
+  getDeals,
+  getActivities,
+  syncLeadsToCRM,
+  bulkImportLeadsToCRM
 } from '@/lib/crm-service';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -59,6 +61,7 @@ export default function CRMDashboard({ userId, role }: CRMDashboardProps) {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [searchTerm, setSearchTerm] = useState('');
+  const [syncing, setSyncing] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -90,6 +93,28 @@ export default function CRMDashboard({ userId, role }: CRMDashboardProps) {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const syncLeads = async () => {
+    try {
+      setSyncing(true);
+      await syncLeadsToCRM(userId, role);
+      toast({
+        title: "Success",
+        description: "Leads synced to CRM successfully",
+      });
+      // Reload data after sync
+      await loadDashboardData();
+    } catch (error) {
+      console.error('Error syncing leads:', error);
+      toast({
+        title: "Error",
+        description: "Failed to sync leads to CRM",
+        variant: "destructive",
+      });
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -189,6 +214,33 @@ export default function CRMDashboard({ userId, role }: CRMDashboardProps) {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
+          {/* Sync Leads Button */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Lead Integration</CardTitle>
+              <CardDescription>Sync existing leads from your database to CRM</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                onClick={syncLeads} 
+                disabled={syncing}
+                className="w-full"
+              >
+                {syncing ? (
+                  <>
+                    <Clock className="h-4 w-4 mr-2 animate-spin" />
+                    Syncing Leads...
+                  </>
+                ) : (
+                  <>
+                    <TrendingUp className="h-4 w-4 mr-2" />
+                    Sync Leads to CRM
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Recent Deals */}
             <Card>

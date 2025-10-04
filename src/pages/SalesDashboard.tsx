@@ -24,11 +24,13 @@ import {
   BarChart3,
   FileText,
   Star,
-  Building2
+  Building2,
+  MessageSquare
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import CRMDashboard from '@/components/CRMDashboard';
+import MessagingSystem from '@/components/MessagingSystem';
 import { CompanyForm, ContactForm, DealForm, ActivityForm } from '@/components/CRMForms';
 import { 
   getCompanies, 
@@ -117,6 +119,7 @@ const SalesDashboard = () => {
   const [newMessage, setNewMessage] = useState('');
   const [dealFilter, setDealFilter] = useState<'all' | 'hot' | 'warm' | 'cold'>('all');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [showMessagingSystem, setShowMessagingSystem] = useState(false);
   
   // CRM State
   const [crmData, setCrmData] = useState({
@@ -618,15 +621,10 @@ const SalesDashboard = () => {
             </Button>
             <Button
               variant="outline"
-              onClick={() => {
-                const messagesSection = document.querySelector('[data-messages-section]');
-                if (messagesSection) {
-                  messagesSection.scrollIntoView({ behavior: 'smooth' });
-                }
-              }}
+              onClick={() => setShowMessagingSystem(true)}
               className="relative text-gray-600"
             >
-              <Phone className="h-4 w-4 mr-2" />
+              <MessageSquare className="h-4 w-4 mr-2" />
               Messages
               {inbox.length > 0 && (
                 <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-xs">
@@ -1189,6 +1187,13 @@ const SalesDashboard = () => {
         </motion.div>
       </div>
 
+      {/* Messaging System */}
+      <MessagingSystem
+        isOpen={showMessagingSystem}
+        onClose={() => setShowMessagingSystem(false)}
+        currentUserId={profile?.id || ''}
+        currentUserRole={profile?.role || 'rep'}
+      />
     </div>
   );
 };
