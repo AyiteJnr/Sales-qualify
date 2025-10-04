@@ -27,6 +27,36 @@ import {
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import CRMDashboard from '@/components/CRMDashboard';
+import { CompanyForm, ContactForm, DealForm, ActivityForm } from '@/components/CRMForms';
+import { 
+  getCompanies, 
+  getContacts, 
+  getDeals, 
+  getActivities,
+  createCompany,
+  createContact,
+  createDeal,
+  createActivity,
+  updateCompany,
+  updateContact,
+  updateDeal,
+  updateActivity,
+  deleteCompany,
+  deleteContact,
+  deleteDeal,
+  deleteActivity
+} from '@/lib/crm-service';
+import { 
+  Company, 
+  Contact, 
+  Deal, 
+  Activity as CRMActivity,
+  CompanyFormData,
+  ContactFormData,
+  DealFormData,
+  ActivityFormData
+} from '@/integrations/supabase/crm-types';
 
 interface SalesStats {
   myLeads: number;
@@ -86,6 +116,18 @@ const SalesDashboard = () => {
   const [newMessage, setNewMessage] = useState('');
   const [dealFilter, setDealFilter] = useState<'all' | 'hot' | 'warm' | 'cold'>('all');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  
+  // CRM State
+  const [crmData, setCrmData] = useState({
+    companies: [] as Company[],
+    contacts: [] as Contact[],
+    deals: [] as Deal[],
+    activities: [] as CRMActivity[]
+  });
+  const [showCrmModal, setShowCrmModal] = useState(false);
+  const [crmModalType, setCrmModalType] = useState<'company' | 'contact' | 'deal' | 'activity' | null>(null);
+  const [editingRecord, setEditingRecord] = useState<Company | Contact | Deal | CRMActivity | null>(null);
+  const [crmLoading, setCrmLoading] = useState(false);
 
   useEffect(() => {
     if (profile && profile.role !== 'rep') {
@@ -94,6 +136,7 @@ const SalesDashboard = () => {
     }
     if (profile?.role === 'rep') {
       fetchDashboardData();
+      loadCrmData();
     }
   }, [profile, navigate]);
 
@@ -235,6 +278,120 @@ const SalesDashboard = () => {
     } catch (error) {
       console.error('Send message error (rep):', error);
     }
+  };
+
+  // CRM Functions
+  const loadCrmData = async () => {
+    if (!user?.id) return;
+    
+    try {
+      setCrmLoading(true);
+      const [companies, contacts, deals, activities] = await Promise.all([
+        getCompanies(user.id, 'rep'),
+        getContacts(user.id, 'rep'),
+        getDeals(user.id, 'rep'),
+        getActivities(user.id, 'rep')
+      ]);
+
+      setCrmData({ companies, contacts, deals, activities });
+    } catch (error) {
+      console.error('Error loading CRM data:', error);
+    } finally {
+      setCrmLoading(false);
+    }
+  };
+
+  const handleCrmCreate = async (type: 'company' | 'contact' | 'deal' | 'activity', data: any) => {
+    if (!user?.id) return;
+
+    try {
+      setCrmLoading(true);
+      
+      switch (type) {
+        case 'company':
+          await createCompany(data, user.id);
+          break;
+        case 'contact':
+          await createContact(data, user.id);
+          break;
+        case 'deal':
+          await createDeal(data, user.id);
+          break;
+        case 'activity':
+          await createActivity(data, user.id);
+          break;
+      }
+
+      setShowCrmModal(false);
+      setCrmModalType(null);
+      setEditingRecord(null);
+      loadCrmData();
+    } catch (error) {
+      console.error(`Error creating ${type}:`, error);
+    } finally {
+      setCrmLoading(false);
+    }
+  };
+
+  const handleCrmUpdate = async (type: 'company' | 'contact' | 'deal' | 'activity', data: any) => {
+    if (!editingRecord) return;
+
+    try {
+      setCrmLoading(true);
+      
+      switch (type) {
+        case 'company':
+          await updateCompany(editingRecord.id, data);
+          break;
+        case 'contact':
+          await updateContact(editingRecord.id, data);
+          break;
+        case 'deal':
+          await updateDeal(editingRecord.id, data);
+          break;
+        case 'activity':
+          await updateActivity(editingRecord.id, data);
+          break;
+      }
+
+      setShowCrmModal(false);
+      setCrmModalType(null);
+      setEditingRecord(null);
+      loadCrmData();
+    } catch (error) {
+      console.error(`Error updating ${type}:`, error);
+    } finally {
+      setCrmLoading(false);
+    }
+  };
+
+  const handleCrmDelete = async (type: 'company' | 'contact' | 'deal' | 'activity', id: string) => {
+    try {
+      switch (type) {
+        case 'company':
+          await deleteCompany(id);
+          break;
+        case 'contact':
+          await deleteContact(id);
+          break;
+        case 'deal':
+          await deleteDeal(id);
+          break;
+        case 'activity':
+          await deleteActivity(id);
+          break;
+      }
+
+      loadCrmData();
+    } catch (error) {
+      console.error(`Error deleting ${type}:`, error);
+    }
+  };
+
+  const openCrmModal = (type: 'company' | 'contact' | 'deal' | 'activity', record?: any) => {
+    setCrmModalType(type);
+    setEditingRecord(record || null);
+    setShowCrmModal(true);
   };
 
   const fetchDashboardData = async () => {
@@ -1019,8 +1176,120 @@ const SalesDashboard = () => {
               </CardContent>
             </Card>
           </motion.div>
+
+          {/* CRM Section */}
+          <motion.div variants={itemVariants} className="mt-8">
+            <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-0 shadow-lg">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-xl text-blue-700">
+                      <Users className="h-6 w-6" />
+                      CRM Dashboard
+                    </CardTitle>
+                    <CardDescription className="text-blue-600">
+                      Manage your customer relationships, deals, and activities
+                    </CardDescription>
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button onClick={() => openCrmModal('company')} size="sm">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Company
+                    </Button>
+                    <Button onClick={() => openCrmModal('contact')} size="sm">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Contact
+                    </Button>
+                    <Button onClick={() => openCrmModal('deal')} size="sm">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Deal
+                    </Button>
+                    <Button onClick={() => openCrmModal('activity')} size="sm">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Activity
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <CRMDashboard userId={user?.id || ''} role="rep" />
+              </CardContent>
+            </Card>
+          </motion.div>
         </motion.div>
       </div>
+
+      {/* CRM Modals */}
+      <Dialog open={showCrmModal} onOpenChange={setShowCrmModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingRecord ? 'Edit' : 'Create'} {crmModalType?.charAt(0).toUpperCase() + crmModalType?.slice(1)}
+            </DialogTitle>
+            <DialogDescription>
+              {editingRecord ? 'Update the information below' : 'Fill in the information to create a new record'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {crmModalType === 'company' && (
+            <CompanyForm
+              company={editingRecord as Company}
+              onSave={(data) => editingRecord ? handleCrmUpdate('company', data) : handleCrmCreate('company', data)}
+              onCancel={() => {
+                setShowCrmModal(false);
+                setCrmModalType(null);
+                setEditingRecord(null);
+              }}
+              loading={crmLoading}
+            />
+          )}
+          
+          {crmModalType === 'contact' && (
+            <ContactForm
+              contact={editingRecord as Contact}
+              companies={crmData.companies}
+              onSave={(data) => editingRecord ? handleCrmUpdate('contact', data) : handleCrmCreate('contact', data)}
+              onCancel={() => {
+                setShowCrmModal(false);
+                setCrmModalType(null);
+                setEditingRecord(null);
+              }}
+              loading={crmLoading}
+            />
+          )}
+          
+          {crmModalType === 'deal' && (
+            <DealForm
+              deal={editingRecord as Deal}
+              companies={crmData.companies}
+              contacts={crmData.contacts}
+              onSave={(data) => editingRecord ? handleCrmUpdate('deal', data) : handleCrmCreate('deal', data)}
+              onCancel={() => {
+                setShowCrmModal(false);
+                setCrmModalType(null);
+                setEditingRecord(null);
+              }}
+              loading={crmLoading}
+            />
+          )}
+          
+          {crmModalType === 'activity' && (
+            <ActivityForm
+              activity={editingRecord as CRMActivity}
+              companies={crmData.companies}
+              contacts={crmData.contacts}
+              deals={crmData.deals}
+              onSave={(data) => editingRecord ? handleCrmUpdate('activity', data) : handleCrmCreate('activity', data)}
+              onCancel={() => {
+                setShowCrmModal(false);
+                setCrmModalType(null);
+                setEditingRecord(null);
+              }}
+              loading={crmLoading}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
