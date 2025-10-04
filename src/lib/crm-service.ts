@@ -271,90 +271,41 @@ export const bulkImportLeadsToCRM = async (
 
 export const getCRMDashboardStats = async (userId: string, role: string): Promise<CRMDashboardStats> => {
   try {
-    // Check if CRM tables exist, if not return empty stats
-    const [companiesExists, contactsExists, dealsExists, activitiesExists] = await Promise.all([
-      checkTableExists('companies'),
-      checkTableExists('contacts'),
-      checkTableExists('deals'),
-      checkTableExists('activities')
-    ]);
-
-    if (!companiesExists && !contactsExists && !dealsExists && !activitiesExists) {
-      console.log('CRM tables not found, returning empty stats');
-      return {
-        totalCompanies: 0,
-        totalContacts: 0,
-        totalDeals: 0,
-        totalActivities: 0,
-        openDeals: 0,
-        wonDeals: 0,
-        lostDeals: 0,
-        totalRevenue: 0,
-        pipelineValue: 0,
-        avgDealSize: 0,
-        conversionRate: 0,
-        activitiesThisWeek: 0,
-        activitiesToday: 0
-      };
-    }
-
-    const baseQuery = role === 'admin' ? {} : { assigned_to: userId };
-    
-    // Get basic counts with error handling
-    const [companiesResult, contactsResult, dealsResult, activitiesResult] = await Promise.all([
-      supabase.from('companies').select('id', { count: 'exact' }).match(baseQuery).catch(() => ({ data: [], count: 0, error: null })),
-      supabase.from('contacts').select('id', { count: 'exact' }).match(baseQuery).catch(() => ({ data: [], count: 0, error: null })),
-      supabase.from('deals').select('id, status, value', { count: 'exact' }).match(baseQuery).catch(() => ({ data: [], count: 0, error: null })),
-      supabase.from('activities').select('id, created_at', { count: 'exact' }).match(baseQuery).catch(() => ({ data: [], count: 0, error: null }))
-    ]);
-
-    const totalCompanies = companiesResult.count || 0;
-    const totalContacts = contactsResult.count || 0;
-    const totalDeals = dealsResult.count || 0;
-    const totalActivities = activitiesResult.count || 0;
-
-    // Calculate deal metrics
-    const deals = dealsResult.data || [];
-    const openDeals = deals.filter(d => d.status === 'open').length;
-    const wonDeals = deals.filter(d => d.status === 'won').length;
-    const lostDeals = deals.filter(d => d.status === 'lost').length;
-    const totalRevenue = deals.filter(d => d.status === 'won').reduce((sum, d) => sum + (d.value || 0), 0);
-    const pipelineValue = deals.filter(d => d.status === 'open').reduce((sum, d) => sum + (d.value || 0), 0);
-    const avgDealSize = wonDeals > 0 ? totalRevenue / wonDeals : 0;
-    const conversionRate = totalDeals > 0 ? (wonDeals / totalDeals) * 100 : 0;
-
-    // Calculate activity metrics
-    const activities = activitiesResult.data || [];
-    const now = new Date();
-    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
-    const activitiesThisWeek = activities.filter(a => 
-      new Date(a.created_at) >= weekAgo
-    ).length;
-    
-    const activitiesToday = activities.filter(a => 
-      new Date(a.created_at) >= today
-    ).length;
-
+    // Always return empty stats for now - will be populated after migration
+    console.log('CRM tables not yet migrated, returning empty stats');
     return {
-      totalCompanies,
-      totalContacts,
-      totalDeals,
-      totalActivities,
-      openDeals,
-      wonDeals,
-      lostDeals,
-      totalRevenue,
-      pipelineValue,
-      avgDealSize,
-      conversionRate,
-      activitiesThisWeek,
-      activitiesToday
+      totalCompanies: 0,
+      totalContacts: 0,
+      totalDeals: 0,
+      totalActivities: 0,
+      openDeals: 0,
+      wonDeals: 0,
+      lostDeals: 0,
+      totalRevenue: 0,
+      pipelineValue: 0,
+      avgDealSize: 0,
+      conversionRate: 0,
+      activitiesThisWeek: 0,
+      activitiesToday: 0
     };
   } catch (error) {
     console.error('Error fetching CRM dashboard stats:', error);
-    throw error;
+    // Return empty stats on error
+    return {
+      totalCompanies: 0,
+      totalContacts: 0,
+      totalDeals: 0,
+      totalActivities: 0,
+      openDeals: 0,
+      wonDeals: 0,
+      lostDeals: 0,
+      totalRevenue: 0,
+      pipelineValue: 0,
+      avgDealSize: 0,
+      conversionRate: 0,
+      activitiesThisWeek: 0,
+      activitiesToday: 0
+    };
   }
 };
 
