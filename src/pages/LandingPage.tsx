@@ -278,7 +278,7 @@ const LandingPage = () => {
                 className="text-lg px-8 py-4 h-auto border-2"
               >
                 <Play className="mr-2 h-5 w-5" />
-                Watch Demo
+                See It In Action
               </Button>
             </motion.div>
 
@@ -580,8 +580,8 @@ const LandingPage = () => {
                 variant="outline"
                 className="border-white text-white hover:bg-white hover:text-blue-600 text-lg px-8 py-4 h-auto"
               >
-                <Download className="mr-2 h-5 w-5" />
-                Download Brochure
+                <Play className="mr-2 h-5 w-5" />
+                Watch Demo
               </Button>
             </div>
           </motion.div>

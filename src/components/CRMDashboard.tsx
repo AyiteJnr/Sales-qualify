@@ -31,7 +31,8 @@ import {
   Target,
   MapPin,
   ExternalLink,
-  Download
+  Download,
+  ArrowLeft
 } from 'lucide-react';
 import { 
   CRMDashboardStats, 
@@ -55,6 +56,7 @@ import {
 import { CompanyForm, ContactForm, DealForm, ActivityForm } from './CRMForms';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 interface CRMDashboardProps {
   userId: string;
@@ -79,6 +81,7 @@ export default function CRMDashboard({ userId, role, repName }: CRMDashboardProp
   const [showForm, setShowForm] = useState(false);
   const [formType, setFormType] = useState<'company' | 'contact' | 'deal' | 'activity' | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadDashboardData();
@@ -297,15 +300,27 @@ export default function CRMDashboard({ userId, role, repName }: CRMDashboardProp
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            CRM Dashboard
-            {repName && (
-              <span className="text-lg font-normal text-gray-600 ml-2">
-                - {repName}
-              </span>
-            )}
-          </h1>
-          <p className="text-gray-600">Manage your companies, contacts, deals, and activities</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                CRM Dashboard
+                {repName && (
+                  <span className="text-lg font-normal text-gray-600 ml-2">
+                    - {repName}
+                  </span>
+                )}
+              </h1>
+              <p className="text-gray-600">Manage your companies, contacts, deals, and activities</p>
+            </div>
+            <Button
+              onClick={() => navigate(-1)}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Return to Main Dashboard
+            </Button>
+          </div>
         </div>
         <div className="space-y-6">
       {/* Stats Overview */}
