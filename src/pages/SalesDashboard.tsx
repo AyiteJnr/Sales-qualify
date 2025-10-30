@@ -616,15 +616,16 @@ const SalesDashboard = () => {
     <div className="flex min-h-screen">
       <DashboardSidebar active={activeSection} onNavigate={setActiveSection} />
       <main className="flex-1 min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-0">
+        {/* Header */}
         <div className="container mx-auto px-4 py-8">
-          {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Sales Dashboard</h1>
               <p className="text-gray-600">Welcome back, {profile?.full_name}</p>
             </div>
           </div>
-          <section id="overview" className={activeSection === 'overview' ? '' : 'hidden'}>
+        </div>
+        <section id="overview" className={activeSection === 'overview' ? '' : 'hidden'}>
             {/* Overview stats/cards, current dashboard overview content */}
             <motion.div 
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8"
@@ -1305,17 +1306,14 @@ const SalesDashboard = () => {
             </motion.div>
           </section>
         </main>
+        <MessagingSystem
+          isOpen={showMessagingSystem}
+          onClose={() => setShowMessagingSystem(false)}
+          currentUserId={profile?.id || ''}
+          currentUserRole={profile?.role || 'rep'}
+        />
       </div>
+    );
+  };
 
-      {/* Messaging System */}
-      <MessagingSystem
-        isOpen={showMessagingSystem}
-        onClose={() => setShowMessagingSystem(false)}
-        currentUserId={profile?.id || ''}
-        currentUserRole={profile?.role || 'rep'}
-      />
-    </div>
-  );
-};
-
-export default SalesDashboard;
+  export default SalesDashboard;
