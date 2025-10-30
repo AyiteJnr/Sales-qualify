@@ -55,6 +55,7 @@ import {
   Deal, 
   Activity as CRMActivity,
 } from '@/integrations/supabase/crm-types';
+import DashboardSidebar from '@/components/DashboardSidebar';
 
 interface SalesStats {
   myLeads: number;
@@ -133,6 +134,7 @@ const SalesDashboard = () => {
   });
   const [editingRecord, setEditingRecord] = useState<Company | Contact | Deal | CRMActivity | null>(null);
   const [crmLoading, setCrmLoading] = useState(false);
+  const [activeSection, setActiveSection] = useState('overview');
 
   useEffect(() => {
     if (profile && profile.role !== 'rep') {
@@ -611,421 +613,698 @@ const SalesDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      <div className="container mx-auto px-4 py-8">
-
-        {/* Header */}
-        <motion.div 
-          className="flex items-center justify-between mb-8"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Sales Dashboard</h1>
-            <p className="text-gray-600">Welcome back, {profile?.full_name}</p>
+    <div className="flex min-h-screen">
+      <DashboardSidebar active={activeSection} onNavigate={setActiveSection} />
+      <main className="flex-1 min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-0">
+        <div className="container mx-auto px-4 py-8">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Sales Dashboard</h1>
+              <p className="text-gray-600">Welcome back, {profile?.full_name}</p>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              onClick={() => navigate('/crm')}
-              className="text-gray-600"
+          <section id="overview" className={activeSection === 'overview' ? '' : 'hidden'}>
+            {/* Overview stats/cards, current dashboard overview content */}
+            <motion.div 
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8"
+              variants={itemVariants}
             >
-              <Building2 className="h-4 w-4 mr-2" />
-              CRM
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setShowMessagingSystem(true)}
-              className="relative text-gray-600"
-            >
-              <MessageSquare className="h-4 w-4 mr-2" />
-              Messages
-              {inbox.length > 0 && (
-                <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-xs">
-                  {inbox.length}
-                </Badge>
-              )}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={fetchDashboardData}
-              className="text-gray-600"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => signOut()}
-              className="text-gray-600"
-            >
-              Sign Out
-            </Button>
-          </div>
-        </motion.div>
-
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          {/* Stats Overview */}
-          <motion.div 
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8"
-            variants={itemVariants}
-          >
-            <Card className="hover:shadow-lg transition-all duration-300">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">My Leads</p>
-                    <p className="text-3xl font-bold text-gray-900">{stats.myLeads}</p>
-                  </div>
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Users className="h-6 w-6 text-blue-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-all duration-300">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Calls Today</p>
-                    <p className="text-3xl font-bold text-gray-900">{stats.callsToday}</p>
-                  </div>
-                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                    <Phone className="h-6 w-6 text-green-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-all duration-300">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Conversion Rate</p>
-                    <p className="text-3xl font-bold text-gray-900">{stats.conversionRate.toFixed(1)}%</p>
-                  </div>
-                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <TrendingUp className="h-6 w-6 text-purple-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-all duration-300">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Avg Score</p>
-                    <p className="text-3xl font-bold text-gray-900">{stats.avgScore}</p>
-                  </div>
-                  <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                    <Target className="h-6 w-6 text-yellow-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-all duration-300 border-red-200 bg-gradient-to-br from-red-50 to-orange-50">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-red-600">🔥 Hot Deals</p>
-                    <p className="text-3xl font-bold text-red-700">{stats.hotDeals}</p>
-                  </div>
-                  <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                    <Star className="h-6 w-6 text-red-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-
-          {/* Quick Actions */}
-          <motion.div 
-            className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8"
-            variants={itemVariants}
-          >
-            <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer" onClick={() => navigate('/client/new')}>
-              <CardContent className="p-6 text-center">
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <Plus className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="font-semibold mb-2">Add New Lead</h3>
-                <p className="text-sm text-gray-600">Create a new lead to start qualifying</p>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer" onClick={() => navigate('/start-qualification')}>
-              <CardContent className="p-6 text-center">
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <Phone className="h-6 w-6 text-green-600" />
-                </div>
-                <h3 className="font-semibold mb-2">Start Qualification</h3>
-                <p className="text-sm text-gray-600">Begin qualifying an existing lead</p>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer" onClick={() => navigate('/import/google-sheets')}>
-              <CardContent className="p-6 text-center">
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <FileText className="h-6 w-6 text-blue-600" />
-                </div>
-                <h3 className="font-semibold mb-2">Import from Sheets</h3>
-                <p className="text-sm text-gray-600">Bulk import leads from Google Sheets</p>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer" onClick={() => navigate('/call-history')}>
-              <CardContent className="p-6 text-center">
-                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <Clock className="h-6 w-6 text-purple-600" />
-                </div>
-                <h3 className="font-semibold mb-2">Call History</h3>
-                <p className="text-sm text-gray-600">Review your past calls and results</p>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer border-red-200 bg-gradient-to-br from-red-50 to-orange-50" onClick={() => navigate('/call-history?hot=true')}>
-              <CardContent className="p-6 text-center">
-                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <Star className="h-6 w-6 text-red-600" />
-                </div>
-                <h3 className="font-semibold mb-2 text-red-700">🔥 Hot Deals</h3>
-                <p className="text-sm text-red-600">View and manage your hot leads</p>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* CRM Stats Overview */}
-          <motion.div 
-            variants={itemVariants}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
-          >
-            <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 hover:shadow-lg transition-all duration-300">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-blue-700">Companies</p>
-                    <p className="text-3xl font-bold text-blue-900">{crmStats.totalCompanies}</p>
-                  </div>
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Building2 className="h-6 w-6 text-blue-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 hover:shadow-lg transition-all duration-300">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-green-700">Contacts</p>
-                    <p className="text-3xl font-bold text-green-900">{crmStats.totalContacts}</p>
-                  </div>
-                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                    <Users className="h-6 w-6 text-green-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-purple-200 bg-gradient-to-br from-purple-50 to-violet-50 hover:shadow-lg transition-all duration-300">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-purple-700">Pipeline Value</p>
-                    <p className="text-3xl font-bold text-purple-900">${crmStats.pipelineValue.toLocaleString()}</p>
-                  </div>
-                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <TrendingUp className="h-6 w-6 text-purple-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 hover:shadow-lg transition-all duration-300">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-orange-700">CRM Conversion</p>
-                    <p className="text-3xl font-bold text-orange-900">{crmStats.conversionRate.toFixed(1)}%</p>
-                  </div>
-                  <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                    <Target className="h-6 w-6 text-orange-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* My Leads Section */}
-          <motion.div variants={itemVariants}>
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <Users className="h-5 w-5" />
-                      My Leads
-                    </CardTitle>
-                    <CardDescription>
-                      Manage and track your assigned leads
-                    </CardDescription>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input
-                        placeholder="Search leads..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 w-64"
-                      />
+              <Card className="hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">My Leads</p>
+                      <p className="text-3xl font-bold text-gray-900">{stats.myLeads}</p>
                     </div>
-                    <Button
-                      variant="outline"
-                      onClick={() => navigate('/leads-management')}
-                    >
-                      <ArrowRight className="h-4 w-4 mr-2" />
-                      Manage All
-                    </Button>
+                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <Users className="h-6 w-6 text-blue-600" />
+                    </div>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {filteredLeads.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No leads found</h3>
-                    <p className="text-gray-600 mb-4">
-                      {searchTerm 
-                        ? 'Try adjusting your search criteria'
-                        : 'You don\'t have any assigned leads yet'
-                      }
-                    </p>
-                    {!searchTerm && (
-                      <Button onClick={() => navigate('/client/new')} className="bg-primary hover:bg-primary/90">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Your First Lead
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {filteredLeads.slice(0, 5).map((lead) => (
-                      <div key={lead.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                            <span className="text-sm font-semibold text-primary">
-                              {lead.full_name.charAt(0)}
-                            </span>
-                          </div>
-                          <div>
-                            <h4 className="font-semibold">{lead.full_name}</h4>
-                            <p className="text-sm text-gray-600">
-                              {lead.company_name || 'No company'} • {lead.email || lead.phone || 'No contact'}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <Badge className={getStatusColor(lead.status)}>
-                            {lead.status.replace('_', ' ')}
-                          </Badge>
-                          {lead.qualification_status && (
-                            <Badge className={getQualificationColor(lead.qualification_status)}>
-                              {lead.qualification_status}
-                            </Badge>
-                          )}
-                          {lead.last_call_score && (
-                            <div className="flex items-center gap-1 text-sm text-gray-600">
-                              <Star className="h-4 w-4" />
-                              {lead.last_call_score}
-                            </div>
-                          )}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => navigate(`/qualification/${lead.id}`)}
-                          >
-                            Qualify
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                    {filteredLeads.length > 5 && (
-                      <div className="text-center pt-4">
-                        <Button
-                          variant="outline"
-                          onClick={() => navigate('/leads-management')}
-                        >
-                          View All {filteredLeads.length} Leads
-                          <ArrowRight className="h-4 w-4 ml-2" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
+                </CardContent>
+              </Card>
 
+              <Card className="hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Calls Today</p>
+                      <p className="text-3xl font-bold text-gray-900">{stats.callsToday}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                      <Phone className="h-6 w-6 text-green-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-          {/* Recent Calls */}
-          {recentCalls.length > 0 && (
-            <motion.div variants={itemVariants} className="mt-8">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Clock className="h-5 w-5" />
-                    Recent Calls
-                  </CardTitle>
-                  <CardDescription>
-                    Your latest call activities and results
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {recentCalls.map((call) => (
-                      <div key={call.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                            <Phone className="h-4 w-4 text-primary" />
-                          </div>
-                          <div>
-                            <p className="font-semibold">{call.client_name}</p>
-                            <p className="text-sm text-gray-600">
-                              {new Date(call.call_timestamp).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <Badge className={getQualificationColor(call.qualification_status)}>
-                            {call.qualification_status}
-                          </Badge>
-                          <div className="text-right">
-                            <p className="font-semibold">Score: {call.score}</p>
-                            {call.next_action && (
-                              <p className="text-xs text-gray-600">{call.next_action}</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+              <Card className="hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Conversion Rate</p>
+                      <p className="text-3xl font-bold text-gray-900">{stats.conversionRate.toFixed(1)}%</p>
+                    </div>
+                    <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <TrendingUp className="h-6 w-6 text-purple-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Avg Score</p>
+                      <p className="text-3xl font-bold text-gray-900">{stats.avgScore}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                      <Target className="h-6 w-6 text-yellow-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-all duration-300 border-red-200 bg-gradient-to-br from-red-50 to-orange-50">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-red-600">🔥 Hot Deals</p>
+                      <p className="text-3xl font-bold text-red-700">{stats.hotDeals}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                      <Star className="h-6 w-6 text-red-600" />
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             </motion.div>
-          )}
 
 
-        </motion.div>
+            {/* Quick Actions */}
+            <motion.div 
+              className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8"
+              variants={itemVariants}
+            >
+              <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer" onClick={() => navigate('/client/new')}>
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <Plus className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="font-semibold mb-2">Add New Lead</h3>
+                  <p className="text-sm text-gray-600">Create a new lead to start qualifying</p>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer" onClick={() => navigate('/start-qualification')}>
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <Phone className="h-6 w-6 text-green-600" />
+                  </div>
+                  <h3 className="font-semibold mb-2">Start Qualification</h3>
+                  <p className="text-sm text-gray-600">Begin qualifying an existing lead</p>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer" onClick={() => navigate('/import/google-sheets')}>
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <FileText className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <h3 className="font-semibold mb-2">Import from Sheets</h3>
+                  <p className="text-sm text-gray-600">Bulk import leads from Google Sheets</p>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer" onClick={() => navigate('/call-history')}>
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <Clock className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <h3 className="font-semibold mb-2">Call History</h3>
+                  <p className="text-sm text-gray-600">Review your past calls and results</p>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer border-red-200 bg-gradient-to-br from-red-50 to-orange-50" onClick={() => navigate('/call-history?hot=true')}>
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <Star className="h-6 w-6 text-red-600" />
+                  </div>
+                  <h3 className="font-semibold mb-2 text-red-700">🔥 Hot Deals</h3>
+                  <p className="text-sm text-red-600">View and manage your hot leads</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* CRM Stats Overview */}
+            <motion.div 
+              variants={itemVariants}
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+            >
+              <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-blue-700">Companies</p>
+                      <p className="text-3xl font-bold text-blue-900">{crmStats.totalCompanies}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <Building2 className="h-6 w-6 text-blue-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-green-700">Contacts</p>
+                      <p className="text-3xl font-bold text-green-900">{crmStats.totalContacts}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                      <Users className="h-6 w-6 text-green-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-purple-200 bg-gradient-to-br from-purple-50 to-violet-50 hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-purple-700">Pipeline Value</p>
+                      <p className="text-3xl font-bold text-purple-900">${crmStats.pipelineValue.toLocaleString()}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <TrendingUp className="h-6 w-6 text-purple-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-orange-700">CRM Conversion</p>
+                      <p className="text-3xl font-bold text-orange-900">{crmStats.conversionRate.toFixed(1)}%</p>
+                    </div>
+                    <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                      <Target className="h-6 w-6 text-orange-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* My Leads Section */}
+            <motion.div variants={itemVariants}>
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Users className="h-5 w-5" />
+                        My Leads
+                      </CardTitle>
+                      <CardDescription>
+                        Manage and track your assigned leads
+                      </CardDescription>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                        <Input
+                          placeholder="Search leads..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-10 w-64"
+                        />
+                      </div>
+                      <Button
+                        variant="outline"
+                        onClick={() => navigate('/leads-management')}
+                      >
+                        <ArrowRight className="h-4 w-4 mr-2" />
+                        Manage All
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {filteredLeads.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No leads found</h3>
+                      <p className="text-gray-600 mb-4">
+                        {searchTerm 
+                          ? 'Try adjusting your search criteria'
+                          : 'You don\'t have any assigned leads yet'
+                        }
+                      </p>
+                      {!searchTerm && (
+                        <Button onClick={() => navigate('/client/new')} className="bg-primary hover:bg-primary/90">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Your First Lead
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {filteredLeads.slice(0, 5).map((lead) => (
+                        <div key={lead.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                              <span className="text-sm font-semibold text-primary">
+                                {lead.full_name.charAt(0)}
+                              </span>
+                            </div>
+                            <div>
+                              <h4 className="font-semibold">{lead.full_name}</h4>
+                              <p className="text-sm text-gray-600">
+                                {lead.company_name || 'No company'} • {lead.email || lead.phone || 'No contact'}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <Badge className={getStatusColor(lead.status)}>
+                              {lead.status.replace('_', ' ')}
+                            </Badge>
+                            {lead.qualification_status && (
+                              <Badge className={getQualificationColor(lead.qualification_status)}>
+                                {lead.qualification_status}
+                              </Badge>
+                            )}
+                            {lead.last_call_score && (
+                              <div className="flex items-center gap-1 text-sm text-gray-600">
+                                <Star className="h-4 w-4" />
+                                {lead.last_call_score}
+                              </div>
+                            )}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => navigate(`/qualification/${lead.id}`)}
+                            >
+                              Qualify
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      {filteredLeads.length > 5 && (
+                        <div className="text-center pt-4">
+                          <Button
+                            variant="outline"
+                            onClick={() => navigate('/leads-management')}
+                          >
+                            View All {filteredLeads.length} Leads
+                            <ArrowRight className="h-4 w-4 ml-2" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+
+
+            {/* Recent Calls */}
+            {recentCalls.length > 0 && (
+              <motion.div variants={itemVariants} className="mt-8">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Clock className="h-5 w-5" />
+                      Recent Calls
+                    </CardTitle>
+                    <CardDescription>
+                      Your latest call activities and results
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {recentCalls.map((call) => (
+                        <div key={call.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                              <Phone className="h-4 w-4 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-semibold">{call.client_name}</p>
+                              <p className="text-sm text-gray-600">
+                                {new Date(call.call_timestamp).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <Badge className={getQualificationColor(call.qualification_status)}>
+                              {call.qualification_status}
+                            </Badge>
+                            <div className="text-right">
+                              <p className="font-semibold">Score: {call.score}</p>
+                              {call.next_action && (
+                                <p className="text-xs text-gray-600">{call.next_action}</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+          </section>
+          <section id="deals" className={activeSection === 'deals' ? '' : 'hidden'}>
+            {/* Deals content (lead cards/stats or basic deals listing) */}
+            <motion.div 
+              variants={itemVariants}
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8"
+            >
+              <Card className="hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <Users className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="font-semibold mb-2">My Leads</h3>
+                  <p className="text-sm text-gray-600">View and manage your assigned leads</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4"
+                    onClick={() => navigate('/leads-management')}
+                  >
+                    Manage Leads
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </CardContent>
+              </Card>
+              <Card className="hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <Phone className="h-6 w-6 text-green-600" />
+                  </div>
+                  <h3 className="font-semibold mb-2">Start Qualification</h3>
+                  <p className="text-sm text-gray-600">Begin qualifying an existing lead</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4"
+                    onClick={() => navigate('/start-qualification')}
+                  >
+                    Qualify Lead
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </CardContent>
+              </Card>
+              <Card className="hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <FileText className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <h3 className="font-semibold mb-2">Import from Sheets</h3>
+                  <p className="text-sm text-gray-600">Bulk import leads from Google Sheets</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4"
+                    onClick={() => navigate('/import/google-sheets')}
+                  >
+                    Import Sheets
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </CardContent>
+              </Card>
+              <Card className="hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <Clock className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <h3 className="font-semibold mb-2">Call History</h3>
+                  <p className="text-sm text-gray-600">Review your past calls and results</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4"
+                    onClick={() => navigate('/call-history')}
+                  >
+                    View History
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </CardContent>
+              </Card>
+              <Card className="hover:shadow-lg transition-all duration-300 border-red-200 bg-gradient-to-br from-red-50 to-orange-50">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <Star className="h-6 w-6 text-red-600" />
+                  </div>
+                  <h3 className="font-semibold mb-2 text-red-700">🔥 Hot Deals</h3>
+                  <p className="text-sm text-red-600">View and manage your hot leads</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4"
+                    onClick={() => navigate('/call-history?hot=true')}
+                  >
+                    Manage Hot Deals
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </section>
+          <section id="performance" className={activeSection === 'performance' ? '' : 'hidden'}>
+            {/* Performance analytics section */}
+            <motion.div 
+              variants={itemVariants}
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8"
+            >
+              <Card className="hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <BarChart3 className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <h3 className="font-semibold mb-2">Performance Analytics</h3>
+                  <p className="text-sm text-gray-600">View detailed performance metrics</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4"
+                    onClick={() => navigate('/performance-analytics')}
+                  >
+                    View Analytics
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </CardContent>
+              </Card>
+              <Card className="hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <Calendar className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <h3 className="font-semibold mb-2">Activity Calendar</h3>
+                  <p className="text-sm text-gray-600">See your upcoming activities</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4"
+                    onClick={() => navigate('/activity-calendar')}
+                  >
+                    View Calendar
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </CardContent>
+              </Card>
+              <Card className="hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle className="h-6 w-6 text-green-600" />
+                  </div>
+                  <h3 className="font-semibold mb-2">Task Management</h3>
+                  <p className="text-sm text-gray-600">Track and manage your tasks</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4"
+                    onClick={() => navigate('/task-management')}
+                  >
+                    Manage Tasks
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </section>
+          <section id="leads" className={activeSection === 'leads' ? '' : 'hidden'}>
+            {/* Lead Management, add/view leads content */}
+            <motion.div 
+              variants={itemVariants}
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8"
+            >
+              <Card className="hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <Plus className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="font-semibold mb-2">Add New Lead</h3>
+                  <p className="text-sm text-gray-600">Create a new lead to start qualifying</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4"
+                    onClick={() => navigate('/client/new')}
+                  >
+                    Add Lead
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </CardContent>
+              </Card>
+              <Card className="hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <FileText className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <h3 className="font-semibold mb-2">Import Leads</h3>
+                  <p className="text-sm text-gray-600">Bulk import leads from Google Sheets</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4"
+                    onClick={() => navigate('/import/google-sheets')}
+                  >
+                    Import Leads
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </CardContent>
+              </Card>
+              <Card className="hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <Phone className="h-6 w-6 text-green-600" />
+                  </div>
+                  <h3 className="font-semibold mb-2">Start Qualification</h3>
+                  <p className="text-sm text-gray-600">Begin qualifying an existing lead</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4"
+                    onClick={() => navigate('/start-qualification')}
+                  >
+                    Qualify Lead
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </CardContent>
+              </Card>
+              <Card className="hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <Users className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <h3 className="font-semibold mb-2">My Assigned Leads</h3>
+                  <p className="text-sm text-gray-600">View and manage your assigned leads</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4"
+                    onClick={() => navigate('/leads-management')}
+                  >
+                    Manage Leads
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </CardContent>
+              </Card>
+              <Card className="hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <AlertCircle className="h-6 w-6 text-red-600" />
+                  </div>
+                  <h3 className="font-semibold mb-2 text-red-700">🔥 Hot Deals</h3>
+                  <p className="text-sm text-red-600">View and manage your hot leads</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4"
+                    onClick={() => navigate('/call-history?hot=true')}
+                  >
+                    Manage Hot Deals
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </section>
+          <section id="crm" className={activeSection === 'crm' ? '' : 'hidden'}>
+            <CRMDashboard userId={user?.id} role={profile?.role} />
+          </section>
+          <section id="settings" className={activeSection === 'settings' ? '' : 'hidden'}>
+            {/* Settings section for reps */}
+            <motion.div 
+              variants={itemVariants}
+              className="grid grid-cols-1 md:grid-cols-2 gap-6"
+            >
+              <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-blue-700">Profile</p>
+                      <p className="text-lg font-bold text-blue-900">{profile?.full_name}</p>
+                      <p className="text-sm text-gray-600">{profile?.email}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <Users className="h-6 w-6 text-blue-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-green-700">Role</p>
+                      <p className="text-lg font-bold text-green-900">{profile?.role}</p>
+                      <p className="text-sm text-gray-600">Assigned to {profile?.company_name || 'no company'}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                      <Building2 className="h-6 w-6 text-green-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-purple-200 bg-gradient-to-br from-purple-50 to-violet-50 hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-purple-700">Messaging</p>
+                      <p className="text-lg font-bold text-purple-900">{inbox.length}</p>
+                      <p className="text-sm text-gray-600">Unread messages</p>
+                    </div>
+                    <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <MessageSquare className="h-6 w-6 text-purple-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-orange-700">CRM</p>
+                      <p className="text-lg font-bold text-orange-900">{crmStats.totalCompanies}</p>
+                      <p className="text-sm text-gray-600">Companies in CRM</p>
+                    </div>
+                    <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                      <Building2 className="h-6 w-6 text-orange-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </section>
+        </main>
       </div>
 
       {/* Messaging System */}

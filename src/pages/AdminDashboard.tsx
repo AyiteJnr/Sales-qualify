@@ -71,6 +71,7 @@ import {
   DealFormData,
   ActivityFormData
 } from '@/integrations/supabase/crm-types';
+import DashboardSidebar from '@/components/DashboardSidebar';
 
 interface DashboardStats {
   totalLeads: number;
@@ -206,6 +207,7 @@ const AdminDashboard = () => {
   });
   const [selectedRepForCrm, setSelectedRepForCrm] = useState<string>('');
   const [showRepCrmModal, setShowRepCrmModal] = useState(false);
+  const [activeSection, setActiveSection] = useState('overview');
 
   // Realtime subscription for call records to keep dashboard in sync
   useEffect(() => {
@@ -850,1139 +852,1095 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-            <p className="text-muted-foreground">Welcome back, {profile?.full_name}</p>
+    <div className="flex min-h-screen">
+      <DashboardSidebar active={activeSection} onNavigate={setActiveSection} />
+      <main className="flex-1 min-h-screen bg-gradient-to-br from-background via-primary/5 to-primary/10 p-0">
+        <div className="container mx-auto px-4 py-8">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+              <p className="text-muted-foreground">Welcome back, {profile?.full_name}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowRepCrmModal(true)}
+                className="text-gray-600"
+              >
+                <Building2 className="h-4 w-4 mr-2" />
+                CRM
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowMessagingSystem(true)}
+                className="relative"
+              >
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Messages
+                {inbox.length > 0 && (
+                  <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-xs">
+                    {inbox.length}
+                  </Badge>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => fetchDashboardData(true)}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => signOut()}
+              >
+                Sign Out
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              onClick={() => setShowRepCrmModal(true)}
-              className="text-gray-600"
-            >
-              <Building2 className="h-4 w-4 mr-2" />
-              CRM
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setShowMessagingSystem(true)}
-              className="relative"
-            >
-              <MessageSquare className="h-4 w-4 mr-2" />
-              Messages
-              {inbox.length > 0 && (
-                <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-xs">
-                  {inbox.length}
-                </Badge>
-              )}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => fetchDashboardData(true)}
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => signOut()}
-            >
-              Sign Out
-            </Button>
-          </div>
-        </div>
-
-        <div>
-          {/* Stats Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total Leads</p>
-                    <p className="text-3xl font-bold">{stats.totalLeads}</p>
-                  </div>
-                  <Users className="h-8 w-8 text-muted-foreground" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total Calls</p>
-                    <p className="text-3xl font-bold">{stats.totalCalls}</p>
-                  </div>
-                  <Phone className="h-8 w-8 text-muted-foreground" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Conversion Rate</p>
-                    <p className="text-3xl font-bold">{stats.conversionRate.toFixed(1)}%</p>
-                  </div>
-                  <TrendingUp className="h-8 w-8 text-muted-foreground" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Top Performer</p>
-                    <p className="text-lg font-bold truncate">{stats.topPerformer}</p>
-                  </div>
-                  <Award className="h-8 w-8 text-muted-foreground" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-
-          {/* Main Content */}
-          <div>
-
-            <Tabs defaultValue="overview" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-5 bg-gray-100 p-1 rounded-lg">
-                <TabsTrigger value="overview" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Overview</TabsTrigger>
-                <TabsTrigger value="deals" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Deals</TabsTrigger>
-                <TabsTrigger value="performance" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Performance</TabsTrigger>
-                <TabsTrigger value="leads" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Lead Management</TabsTrigger>
-                <TabsTrigger value="settings" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Settings</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="overview" className="space-y-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Rep Performance Chart */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <BarChart3 className="h-5 w-5" />
-                        Sales Rep Performance
-                      </CardTitle>
-                      <CardDescription>
-                        Performance metrics for all sales representatives
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        {repPerformance.map((rep, index) => (
-                          <div key={rep.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white text-sm font-semibold">
-                                {index + 1}
-                              </div>
-                              <div>
-                                <p className="font-semibold">{rep.name}</p>
-                                <p className="text-sm text-gray-600">{rep.email}</p>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className="font-semibold">{rep.conversionRate.toFixed(1)}%</p>
-                              <p className="text-sm text-gray-600">{rep.completedCalls}/{rep.totalCalls} calls</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Recent Activity */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Activity className="h-5 w-5" />
-                        Recent Activity
-                      </CardTitle>
-                      <CardDescription>
-                        Latest activities across the platform
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {recentActivity.slice(0, 5).map((activity) => (
-                          <div key={activity.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                            <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
-                            <div className="flex-1">
-                              <p className="text-sm font-medium">{activity.description}</p>
-                              <p className="text-xs text-gray-600">
-                                {activity.user} • {new Date(activity.timestamp).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="performance" className="space-y-6">
+          {/* Content Sections */}
+          <section id="overview" className={activeSection === 'overview' ? '' : 'hidden'}>
+            {/* Overview content (stats, repPerformance, activity) */}
+            <div>
+              {/* Stats Overview */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Detailed Performance Analysis</CardTitle>
-                    <CardDescription>
-                      Comprehensive performance metrics and analytics
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-6">
-                      {repPerformance.map((rep) => (
-                        <div key={rep.id} className="border rounded-lg p-6">
-                          <div className="flex items-center justify-between mb-4">
-                            <div>
-                              <h3 className="text-lg font-semibold">{rep.name}</h3>
-                              <p className="text-gray-600">{rep.email}</p>
-                            </div>
-                            <Badge className="bg-primary text-white">
-                              {rep.conversionRate.toFixed(1)}% Conversion
-                            </Badge>
-                          </div>
-                          <div className="grid grid-cols-3 gap-4">
-                            <div className="text-center">
-                              <p className="text-2xl font-bold text-gray-900">{rep.totalCalls}</p>
-                              <p className="text-sm text-gray-600">Total Calls</p>
-                            </div>
-                            <div className="text-center">
-                              <p className="text-2xl font-bold text-gray-900">{rep.completedCalls}</p>
-                              <p className="text-sm text-gray-600">Completed</p>
-                            </div>
-                            <div className="text-center">
-                              <p className="text-2xl font-bold text-gray-900">{rep.avgScore}</p>
-                              <p className="text-sm text-gray-600">Avg Score</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Total Leads</p>
+                        <p className="text-3xl font-bold">{stats.totalLeads}</p>
+                      </div>
+                      <Users className="h-8 w-8 text-muted-foreground" />
                     </div>
                   </CardContent>
                 </Card>
 
-              </TabsContent>
-
-              <TabsContent value="activity" className="space-y-6">
                 <Card>
-                  <CardHeader>
-                    <CardTitle>System Activity Log</CardTitle>
-                    <CardDescription>
-                      Complete activity log for monitoring and auditing
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {recentActivity.map((activity) => (
-                        <div key={activity.id} className="flex items-center gap-4 p-4 border rounded-lg">
-                          <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                            <Activity className="h-5 w-5 text-gray-600" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="font-medium">{activity.description}</p>
-                            <p className="text-sm text-gray-600">
-                              {activity.user} • {new Date(activity.timestamp).toLocaleString()}
-                            </p>
-                          </div>
-                          <Badge variant="outline">
-                            {activity.type}
-                          </Badge>
-                        </div>
-                      ))}
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Total Calls</p>
+                        <p className="text-3xl font-bold">{stats.totalCalls}</p>
+                      </div>
+                      <Phone className="h-8 w-8 text-muted-foreground" />
                     </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
 
-
-              <TabsContent value="deals" className="space-y-6">
-                <div className="grid gap-6">
-                  {/* Deals Filter Header */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <TrendingUp className="h-5 w-5 text-blue-600" />
-                        Deals Dashboard
-                        <Badge variant="outline">
-                          {callRecords.length} Total
-                        </Badge>
-                      </CardTitle>
-                      <CardDescription>
-                        Comprehensive view of all deals - hot, warm, and cold leads
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      {/* Deal Type Filter */}
-                      <div className="flex gap-2 mb-4">
-                        <Button 
-                          variant={dealFilter === 'hot' ? "default" : "outline"}
-                          onClick={() => setDealFilter('hot')}
-                          className={dealFilter === 'hot' ? "bg-red-500 hover:bg-red-600 text-white" : "border-red-500 text-red-600 hover:bg-red-50"}
-                        >
-                          🔥 Hot Deals ({callRecords.filter(r => r.qualification_status === 'hot').length})
-                        </Button>
-                        <Button 
-                          variant={dealFilter === 'warm' ? "default" : "outline"}
-                          onClick={() => setDealFilter('warm')}
-                          className={dealFilter === 'warm' ? "bg-yellow-500 hover:bg-yellow-600 text-white" : "border-yellow-500 text-yellow-600 hover:bg-yellow-50"}
-                        >
-                          🌡️ Warm Deals ({callRecords.filter(r => r.qualification_status === 'warm').length})
-                        </Button>
-                        <Button 
-                          variant={dealFilter === 'cold' ? "default" : "outline"}
-                          onClick={() => setDealFilter('cold')}
-                          className={dealFilter === 'cold' ? "bg-blue-500 hover:bg-blue-600 text-white" : "border-blue-500 text-blue-600 hover:bg-blue-50"}
-                        >
-                          ❄️ Cold Deals ({callRecords.filter(r => r.qualification_status === 'cold').length})
-                        </Button>
-                        <Button 
-                          variant={dealFilter === 'all' ? "default" : "outline"}
-                          onClick={() => setDealFilter('all')}
-                          className={dealFilter === 'all' ? "bg-gray-500 hover:bg-gray-600 text-white" : "border-gray-500 text-gray-600 hover:bg-gray-50"}
-                        >
-                          📊 All Deals ({callRecords.length})
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Filtered Deals Display */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <TrendingUp className="h-5 w-5 text-red-600" />
-                        {dealFilter === 'all' ? 'All Deals' : `${dealFilter.charAt(0).toUpperCase() + dealFilter.slice(1)} Deals`}
-                        <Badge variant="destructive">
-                          {dealFilter === 'all' ? callRecords.length : 
-                           dealFilter === 'hot' ? callRecords.filter(r => r.qualification_status === 'hot').length :
-                           dealFilter === 'warm' ? callRecords.filter(r => r.qualification_status === 'warm').length :
-                           callRecords.filter(r => r.qualification_status === 'cold').length} Active
-                        </Badge>
-                      </CardTitle>
-                      <CardDescription>
-                        {dealFilter === 'hot' ? 'High-priority leads that need immediate attention' :
-                         dealFilter === 'warm' ? 'Medium-priority leads with potential' :
-                         dealFilter === 'cold' ? 'Low-priority leads for future follow-up' :
-                         'Complete overview of all deal types'}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                        <Card>
-                          <CardContent className="pt-6 text-center">
-                            <div className={`text-2xl font-bold ${dealFilter === 'hot' ? 'text-red-600' : dealFilter === 'warm' ? 'text-yellow-600' : dealFilter === 'cold' ? 'text-blue-600' : 'text-gray-600'}`}>
-                              {dealFilter === 'all' ? callRecords.length : 
-                               dealFilter === 'hot' ? callRecords.filter(r => r.qualification_status === 'hot').length :
-                               dealFilter === 'warm' ? callRecords.filter(r => r.qualification_status === 'warm').length :
-                               callRecords.filter(r => r.qualification_status === 'cold').length}
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                              {dealFilter === 'all' ? 'Total Deals' : `${dealFilter.charAt(0).toUpperCase() + dealFilter.slice(1)} Leads`}
-                            </p>
-                          </CardContent>
-                        </Card>
-                        <Card>
-                          <CardContent className="pt-6 text-center">
-                            <div className="text-2xl font-bold text-orange-600">
-                              {callRecords.filter(r => r.follow_up_required).length}
-                            </div>
-                            <p className="text-sm text-muted-foreground">Follow-ups</p>
-                          </CardContent>
-                        </Card>
-                        <Card>
-                          <CardContent className="pt-6 text-center">
-                            <Button 
-                              onClick={() => navigate(`/call-history?filter=${dealFilter}`)}
-                              size="sm"
-                            >
-                              <FileText className="h-4 w-4 mr-2" />
-                              View {dealFilter === 'all' ? 'All' : dealFilter.charAt(0).toUpperCase() + dealFilter.slice(1)} Calls
-                            </Button>
-                          </CardContent>
-                        </Card>
-                        <Card>
-                          <CardContent className="pt-6 text-center">
-                            <Button 
-                              variant="outline"
-                              onClick={() => navigate('/call-history')}
-                              size="sm"
-                            >
-                              <BarChart3 className="h-4 w-4 mr-2" />
-                              Analytics
-                            </Button>
-                          </CardContent>
-                        </Card>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Hot Deals List */}
                 <Card>
-                  <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <TrendingUp className="h-5 w-5" />
-                        Active Hot Deals
-                      </CardTitle>
-                    <CardDescription>
-                        High-priority leads requiring immediate follow-up
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {loading ? (
-                      <div className="text-center py-8">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-                        <p className="text-muted-foreground">Loading hot deals...</p>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Conversion Rate</p>
+                        <p className="text-3xl font-bold">{stats.conversionRate.toFixed(1)}%</p>
                       </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {callRecords
-                          .filter(r => r.qualification_status === 'hot' || r.is_hot_deal)
-                          .slice(0, 10)
-                          .map((record) => (
-                            <div key={record.id} className="p-4 border rounded-lg">
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-3 mb-2">
-                                    <h4 className="font-semibold">
-                                      {record.clients?.full_name || 'Unknown Client'}
-                                    </h4>
-                                    <Badge variant="destructive">
-                                      Score: {record.score}/100
-                                    </Badge>
-                                    {record.follow_up_required && (
-                                      <Badge variant="outline">
-                                        Follow-up Required
-                                      </Badge>
-                                    )}
-                                  </div>
-                                  
-                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-muted-foreground mb-3">
-                                    {record.clients?.company_name && (
-                                      <div>🏢 {record.clients.company_name}</div>
-                                    )}
-                                    {record.profiles && (
-                                      <div>👤 Rep: {record.profiles.full_name}</div>
-                                    )}
-                                    <div>📅 {format(new Date(record.call_timestamp), 'MMM d, h:mm a')}</div>
-                                    {record.clients?.deal_value && (
-                                      <div>💰 ${record.clients.deal_value.toLocaleString()}</div>
-                                    )}
-                                    {record.next_action && (
-                                      <div>📋 {record.next_action}</div>
-                                    )}
-                                  </div>
+                      <TrendingUp className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                  </CardContent>
+                </Card>
 
-                                  {record.comments && (
-                                    <p className="text-sm p-3 bg-muted rounded border-l-4 border-red-500">
-                                      💭 {record.comments}
-                                    </p>
-                                  )}
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Top Performer</p>
+                        <p className="text-lg font-bold truncate">{stats.topPerformer}</p>
+                      </div>
+                      <Award className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+
+              {/* Main Content */}
+              <div>
+
+                <Tabs defaultValue="overview" className="space-y-6">
+                  <TabsList className="grid w-full grid-cols-5 bg-gray-100 p-1 rounded-lg">
+                    <TabsTrigger value="overview" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Overview</TabsTrigger>
+                    <TabsTrigger value="deals" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Deals</TabsTrigger>
+                    <TabsTrigger value="performance" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Performance</TabsTrigger>
+                    <TabsTrigger value="leads" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Lead Management</TabsTrigger>
+                    <TabsTrigger value="settings" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Settings</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="overview" className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Rep Performance Chart */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <BarChart3 className="h-5 w-5" />
+                            Sales Rep Performance
+                          </CardTitle>
+                          <CardDescription>
+                            Performance metrics for all sales representatives
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            {repPerformance.map((rep, index) => (
+                              <div key={rep.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                                    {index + 1}
+                                  </div>
+                                  <div>
+                                    <p className="font-semibold">{rep.name}</p>
+                                    <p className="text-sm text-gray-600">{rep.email}</p>
+                                  </div>
                                 </div>
-                                
-                                <div className="flex gap-2 ml-4">
-                                  {/* Send Follow-up Dialog */}
-                                  <Dialog>
-                                    <DialogTrigger asChild>
-                                      <Button size="sm" className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white">
-                                        <Send className="h-4 w-4 mr-2" />
-                                        Send Follow-up
-                                      </Button>
-                                    </DialogTrigger>
-                                    <DialogContent>
-                                      <DialogHeader>
-                                        <DialogTitle>Send Urgent Follow-up</DialogTitle>
-                                      </DialogHeader>
-                                      <div className="space-y-4">
-                                        <div>
-                                          <p className="text-sm text-muted-foreground mb-2">
-                                            Sending priority follow-up to {record.profiles?.full_name} for: {record.clients?.full_name}
-                                          </p>
-                                        </div>
-                                        <div>
-                                          <label className="text-sm font-medium mb-2 block">Urgent Message</label>
-                                          <Textarea
-                                            placeholder="URGENT: This is a hot lead with high potential. Please contact immediately and report back within 2 hours..."
-                                            rows={4}
-                                            value={followUpMessage}
-                                            onChange={e => setFollowUpMessage(e.target.value)}
-                                          />
-                                        </div>
-                                        <div className="flex gap-2 justify-end">
-                                          <Button variant="outline" onClick={() => setFollowUpMessage('')}>Cancel</Button>
-                                          <Button 
-                                            onClick={() => sendFollowUpRequest(record)}
-                                            disabled={sendingFollowUp}
-                                            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
-                                          >
-                                            {sendingFollowUp ? (
-                                              <>
-                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                                Sending...
-                                              </>
-                                            ) : (
-                                              <>
-                                                <Send className="h-4 w-4 mr-2" />
-                                                Send Request
-                                              </>
-                                            )}
-                                          </Button>
-                                        </div>
-                                      </div>
-                                    </DialogContent>
-                                  </Dialog>
-                                  {/* View Call History Button */}
-                                  <Button 
-                                    size="sm" 
-                                    variant="outline"
-                                    onClick={() => navigate('/call-history?hot=true')}
-                                  >
-                                    <Eye className="h-4 w-4 mr-2" />
-                                    Details
-                                  </Button>
+                                <div className="text-right">
+                                  <p className="font-semibold">{rep.conversionRate.toFixed(1)}%</p>
+                                  <p className="text-sm text-gray-600">{rep.completedCalls}/{rep.totalCalls} calls</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Recent Activity */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Activity className="h-5 w-5" />
+                            Recent Activity
+                          </CardTitle>
+                          <CardDescription>
+                            Latest activities across the platform
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            {recentActivity.slice(0, 5).map((activity) => (
+                              <div key={activity.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                                <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium">{activity.description}</p>
+                                  <p className="text-xs text-gray-600">
+                                    {activity.user} • {new Date(activity.timestamp).toLocaleDateString()}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="performance" className="space-y-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Detailed Performance Analysis</CardTitle>
+                        <CardDescription>
+                          Comprehensive performance metrics and analytics
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-6">
+                          {repPerformance.map((rep) => (
+                            <div key={rep.id} className="border rounded-lg p-6">
+                              <div className="flex items-center justify-between mb-4">
+                                <div>
+                                  <h3 className="text-lg font-semibold">{rep.name}</h3>
+                                  <p className="text-gray-600">{rep.email}</p>
+                                </div>
+                                <Badge className="bg-primary text-white">
+                                  {rep.conversionRate.toFixed(1)}% Conversion
+                                </Badge>
+                              </div>
+                              <div className="grid grid-cols-3 gap-4">
+                                <div className="text-center">
+                                  <p className="text-2xl font-bold text-gray-900">{rep.totalCalls}</p>
+                                  <p className="text-sm text-gray-600">Total Calls</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-2xl font-bold text-gray-900">{rep.completedCalls}</p>
+                                  <p className="text-sm text-gray-600">Completed</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-2xl font-bold text-gray-900">{rep.avgScore}</p>
+                                  <p className="text-sm text-gray-600">Avg Score</p>
                                 </div>
                               </div>
                             </div>
                           ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                        </div>
+                      </CardContent>
+                    </Card>
 
-                </div>
-              </TabsContent>
+                  </TabsContent>
 
-              <TabsContent value="leads" className="space-y-6">
-                {/* Lead Management & Assignment */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Lead Management & Assignment</CardTitle>
-                    <CardDescription>
-                      Import leads and assign them to specific sales representatives
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-6">
-                    <div className="space-y-6">
-                      {/* Quick Actions */}
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <Button 
-                          onClick={() => navigate('/leads-management')}
-                          className="h-20 flex-col gap-2"
-                        >
-                          <Users className="h-6 w-6" />
-                          All Leads
-                        </Button>
-                        <Button 
-                          variant="outline"
-                          onClick={() => navigate('/client/new')}
-                          className="h-20 flex-col gap-2"
-                        >
-                          <Plus className="h-6 w-6" />
-                          Add Lead
-                        </Button>
-                        <Dialog>
-                          <DialogTrigger asChild>
+                  <TabsContent value="activity" className="space-y-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>System Activity Log</CardTitle>
+                        <CardDescription>
+                          Complete activity log for monitoring and auditing
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {recentActivity.map((activity) => (
+                            <div key={activity.id} className="flex items-center gap-4 p-4 border rounded-lg">
+                              <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                                <Activity className="h-5 w-5 text-gray-600" />
+                              </div>
+                              <div className="flex-1">
+                                <p className="font-medium">{activity.description}</p>
+                                <p className="text-sm text-gray-600">
+                                  {activity.user} • {new Date(activity.timestamp).toLocaleString()}
+                                </p>
+                              </div>
+                              <Badge variant="outline">
+                                {activity.type}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+
+                  <TabsContent value="deals" className="space-y-6">
+                    <div className="grid gap-6">
+                      {/* Deals Filter Header */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <TrendingUp className="h-5 w-5 text-blue-600" />
+                            Deals Dashboard
+                            <Badge variant="outline">
+                              {callRecords.length} Total
+                            </Badge>
+                          </CardTitle>
+                          <CardDescription>
+                            Comprehensive view of all deals - hot, warm, and cold leads
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          {/* Deal Type Filter */}
+                          <div className="flex gap-2 mb-4">
                             <Button 
-                              variant="outline"
-                              className="h-20 flex-col gap-2"
+                              variant={dealFilter === 'hot' ? "default" : "outline"}
+                              onClick={() => setDealFilter('hot')}
+                              className={dealFilter === 'hot' ? "bg-red-500 hover:bg-red-600 text-white" : "border-red-500 text-red-600 hover:bg-red-50"}
                             >
-                              <Upload className="h-6 w-6" />
-                              Bulk Import
+                              🔥 Hot Deals ({callRecords.filter(r => r.qualification_status === 'hot').length})
                             </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-4xl">
-                            <DialogHeader>
-                              <DialogTitle>Bulk Lead Import & Assignment</DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-6">
-                              {/* CSV Upload Section */}
-                              <Card>
-                                <CardHeader>
-                                  <CardTitle className="text-lg">Step 1: Upload CSV File</CardTitle>
-                                  <CardDescription>
-                                    Upload a CSV file with lead information. Required columns: full_name, email, company_name (optional), phone (optional)
-                                  </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                  <div className="space-y-4">
-                                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                                      <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                                      <Input
-                                        type="file"
-                                        accept=".csv"
-                                        onChange={handleCsvUpload}
-                                        className="hidden"
-                                        id="csv-upload"
-                                      />
-                                      <label htmlFor="csv-upload" className="cursor-pointer">
-                                        <div className="text-lg font-semibold text-gray-900 mb-2">
-                                          Drop CSV file here or click to browse
-                                        </div>
-                                        <div className="text-gray-600">
-                                          Supports CSV files up to 10MB
-                                        </div>
-                                      </label>
+                            <Button 
+                              variant={dealFilter === 'warm' ? "default" : "outline"}
+                              onClick={() => setDealFilter('warm')}
+                              className={dealFilter === 'warm' ? "bg-yellow-500 hover:bg-yellow-600 text-white" : "border-yellow-500 text-yellow-600 hover:bg-yellow-50"}
+                            >
+                              🌡️ Warm Deals ({callRecords.filter(r => r.qualification_status === 'warm').length})
+                            </Button>
+                            <Button 
+                              variant={dealFilter === 'cold' ? "default" : "outline"}
+                              onClick={() => setDealFilter('cold')}
+                              className={dealFilter === 'cold' ? "bg-blue-500 hover:bg-blue-600 text-white" : "border-blue-500 text-blue-600 hover:bg-blue-50"}
+                            >
+                              ❄️ Cold Deals ({callRecords.filter(r => r.qualification_status === 'cold').length})
+                            </Button>
+                            <Button 
+                              variant={dealFilter === 'all' ? "default" : "outline"}
+                              onClick={() => setDealFilter('all')}
+                              className={dealFilter === 'all' ? "bg-gray-500 hover:bg-gray-600 text-white" : "border-gray-500 text-gray-600 hover:bg-gray-50"}
+                            >
+                              📊 All Deals ({callRecords.length})
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Filtered Deals Display */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <TrendingUp className="h-5 w-5 text-red-600" />
+                            {dealFilter === 'all' ? 'All Deals' : `${dealFilter.charAt(0).toUpperCase() + dealFilter.slice(1)} Deals`}
+                            <Badge variant="destructive">
+                              {dealFilter === 'all' ? callRecords.length : 
+                               dealFilter === 'hot' ? callRecords.filter(r => r.qualification_status === 'hot').length :
+                               dealFilter === 'warm' ? callRecords.filter(r => r.qualification_status === 'warm').length :
+                               callRecords.filter(r => r.qualification_status === 'cold').length} Active
+                            </Badge>
+                          </CardTitle>
+                          <CardDescription>
+                            {dealFilter === 'hot' ? 'High-priority leads that need immediate attention' :
+                             dealFilter === 'warm' ? 'Medium-priority leads with potential' :
+                             dealFilter === 'cold' ? 'Low-priority leads for future follow-up' :
+                             'Complete overview of all deal types'}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                            <Card>
+                              <CardContent className="pt-6 text-center">
+                                <div className={`text-2xl font-bold ${dealFilter === 'hot' ? 'text-red-600' : dealFilter === 'warm' ? 'text-yellow-600' : dealFilter === 'cold' ? 'text-blue-600' : 'text-gray-600'}`}>
+                                  {dealFilter === 'all' ? callRecords.length : 
+                                   dealFilter === 'hot' ? callRecords.filter(r => r.qualification_status === 'hot').length :
+                                   dealFilter === 'warm' ? callRecords.filter(r => r.qualification_status === 'warm').length :
+                                   callRecords.filter(r => r.qualification_status === 'cold').length}
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                  {dealFilter === 'all' ? 'Total Deals' : `${dealFilter.charAt(0).toUpperCase() + dealFilter.slice(1)} Leads`}
+                                </p>
+                              </CardContent>
+                            </Card>
+                            <Card>
+                              <CardContent className="pt-6 text-center">
+                                <div className="text-2xl font-bold text-orange-600">
+                                  {callRecords.filter(r => r.follow_up_required).length}
+                                </div>
+                                <p className="text-sm text-muted-foreground">Follow-ups</p>
+                              </CardContent>
+                            </Card>
+                            <Card>
+                              <CardContent className="pt-6 text-center">
+                                <Button 
+                                  onClick={() => navigate(`/call-history?filter=${dealFilter}`)}
+                                  size="sm"
+                                >
+                                  <FileText className="h-4 w-4 mr-2" />
+                                  View {dealFilter === 'all' ? 'All' : dealFilter.charAt(0).toUpperCase() + dealFilter.slice(1)} Calls
+                                </Button>
+                              </CardContent>
+                            </Card>
+                            <Card>
+                              <CardContent className="pt-6 text-center">
+                                <Button 
+                                  variant="outline"
+                                  onClick={() => navigate('/call-history')}
+                                  size="sm"
+                                >
+                                  <BarChart3 className="h-4 w-4 mr-2" />
+                                  Analytics
+                                </Button>
+                              </CardContent>
+                            </Card>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Hot Deals List */}
+                    <Card>
+                      <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <TrendingUp className="h-5 w-5" />
+                            Active Hot Deals
+                          </CardTitle>
+                        <CardDescription>
+                            High-priority leads requiring immediate follow-up
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {loading ? (
+                          <div className="text-center py-8">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+                            <p className="text-muted-foreground">Loading hot deals...</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            {callRecords
+                              .filter(r => r.qualification_status === 'hot' || r.is_hot_deal)
+                              .slice(0, 10)
+                              .map((record) => (
+                                <div key={record.id} className="p-4 border rounded-lg">
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-3 mb-2">
+                                        <h4 className="font-semibold">
+                                          {record.clients?.full_name || 'Unknown Client'}
+                                        </h4>
+                                        <Badge variant="destructive">
+                                          Score: {record.score}/100
+                                        </Badge>
+                                        {record.follow_up_required && (
+                                          <Badge variant="outline">
+                                            Follow-up Required
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      
+                                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-muted-foreground mb-3">
+                                        {record.clients?.company_name && (
+                                          <div>🏢 {record.clients.company_name}</div>
+                                        )}
+                                        {record.profiles && (
+                                          <div>👤 Rep: {record.profiles.full_name}</div>
+                                        )}
+                                        <div>📅 {format(new Date(record.call_timestamp), 'MMM d, h:mm a')}</div>
+                                        {record.clients?.deal_value && (
+                                          <div>💰 ${record.clients.deal_value.toLocaleString()}</div>
+                                        )}
+                                        {record.next_action && (
+                                          <div>📋 {record.next_action}</div>
+                                        )}
+                                      </div>
+
+                                      {record.comments && (
+                                        <p className="text-sm p-3 bg-muted rounded border-l-4 border-red-500">
+                                          💭 {record.comments}
+                                        </p>
+                                      )}
                                     </div>
                                     
-                                    {csvFile && (
-                                      <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                                        <FileText className="h-5 w-5 text-green-600" />
-                                        <span className="text-green-800">{csvFile.name}</span>
+                                    <div className="flex gap-2 ml-4">
+                                      {/* Send Follow-up Dialog */}
+                                      <Dialog>
+                                        <DialogTrigger asChild>
+                                          <Button size="sm" className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white">
+                                            <Send className="h-4 w-4 mr-2" />
+                                            Send Follow-up
+                                          </Button>
+                                        </DialogTrigger>
+                                        <DialogContent>
+                                          <DialogHeader>
+                                            <DialogTitle>Send Urgent Follow-up</DialogTitle>
+                                          </DialogHeader>
+                                          <div className="space-y-4">
+                                            <div>
+                                              <p className="text-sm text-muted-foreground mb-2">
+                                                Sending priority follow-up to {record.profiles?.full_name} for: {record.clients?.full_name}
+                                              </p>
+                                            </div>
+                                            <div>
+                                              <label className="text-sm font-medium mb-2 block">Urgent Message</label>
+                                              <Textarea
+                                                placeholder="URGENT: This is a hot lead with high potential. Please contact immediately and report back within 2 hours..."
+                                                rows={4}
+                                                value={followUpMessage}
+                                                onChange={e => setFollowUpMessage(e.target.value)}
+                                              />
+                                            </div>
+                                            <div className="flex gap-2 justify-end">
+                                              <Button variant="outline" onClick={() => setFollowUpMessage('')}>Cancel</Button>
+                                              <Button 
+                                                onClick={() => sendFollowUpRequest(record)}
+                                                disabled={sendingFollowUp}
+                                                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                                              >
+                                                {sendingFollowUp ? (
+                                                  <>
+                                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                    Sending...
+                                                  </>
+                                                ) : (
+                                                  <>
+                                                    <Send className="h-4 w-4 mr-2" />
+                                                    Send Request
+                                                  </>
+                                                )}
+                                              </Button>
+                                            </div>
+                                          </div>
+                                        </DialogContent>
+                                      </Dialog>
+                                      {/* View Call History Button */}
+                                      <Button 
+                                        size="sm" 
+                                        variant="outline"
+                                        onClick={() => navigate('/call-history?hot=true')}
+                                      >
+                                        <Eye className="h-4 w-4 mr-2" />
+                                        Details
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="leads" className="space-y-6">
+                      {/* Lead Management & Assignment */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Lead Management & Assignment</CardTitle>
+                          <CardDescription>
+                            Import leads and assign them to specific sales representatives
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="pt-6">
+                          <div className="space-y-6">
+                            {/* Quick Actions */}
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                              <Button 
+                                onClick={() => navigate('/leads-management')}
+                                className="h-20 flex-col gap-2"
+                              >
+                                <Users className="h-6 w-6" />
+                                All Leads
+                              </Button>
+                              <Button 
+                                variant="outline"
+                                onClick={() => navigate('/client/new')}
+                                className="h-20 flex-col gap-2"
+                              >
+                                <Plus className="h-6 w-6" />
+                                Add Lead
+                              </Button>
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button 
+                                    variant="outline"
+                                    className="h-20 flex-col gap-2"
+                                  >
+                                    <Upload className="h-6 w-6" />
+                                    Bulk Import
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-4xl">
+                                  <DialogHeader>
+                                    <DialogTitle>Bulk Lead Import & Assignment</DialogTitle>
+                                  </DialogHeader>
+                                  <div className="space-y-6">
+                                    {/* CSV Upload Section */}
+                                    <Card>
+                                      <CardHeader>
+                                        <CardTitle className="text-lg">Step 1: Upload CSV File</CardTitle>
+                                        <CardDescription>
+                                          Upload a CSV file with lead information. Required columns: full_name, email, company_name (optional), phone (optional)
+                                        </CardDescription>
+                                      </CardHeader>
+                                      <CardContent>
+                                        <div className="space-y-4">
+                                          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                                            <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                                            <Input
+                                              type="file"
+                                              accept=".csv"
+                                              onChange={handleCsvUpload}
+                                              className="hidden"
+                                              id="csv-upload"
+                                            />
+                                            <label htmlFor="csv-upload" className="cursor-pointer">
+                                              <div className="text-lg font-semibold text-gray-900 mb-2">
+                                                Drop CSV file here or click to browse
+                                              </div>
+                                              <div className="text-gray-600">
+                                                Supports CSV files up to 10MB
+                                              </div>
+                                            </label>
+                                          </div>
+                                          
+                                          {csvFile && (
+                                            <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                              <FileText className="h-5 w-5 text-green-600" />
+                                              <span className="text-green-800">{csvFile.name}</span>
+                                              <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => setCsvFile(null)}
+                                              >
+                                                Remove
+                                              </Button>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </CardContent>
+                                    </Card>
+
+                                    {/* Assignment Section */}
+                                    {csvLeads.length > 0 && (
+                                      <Card>
+                                        <CardHeader>
+                                          <CardTitle className="text-lg">Step 2: Assign to Sales Representatives</CardTitle>
+                                          <CardDescription>
+                                            Choose how to assign these {csvLeads.length} leads to your sales team
+                                          </CardDescription>
+                                        </CardHeader>
+                                        <CardContent>
+                                          <div className="space-y-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                              <div>
+                                                <label className="text-sm font-medium mb-2 block">Assignment Method</label>
+                                                <Select value={csvDefaultRep} onValueChange={setCsvDefaultRep}>
+                                                  <SelectTrigger>
+                                                    <SelectValue placeholder="Choose assignment method" />
+                                                  </SelectTrigger>
+                                                  <SelectContent>
+                                                    <SelectItem value="unassigned">Leave Unassigned</SelectItem>
+                                                    <SelectItem value="auto-distribute">Auto-Distribute Equally</SelectItem>
+                                                    <SelectItem value="round-robin">Round Robin Assignment</SelectItem>
+                                                    {csvSalesReps.map((rep) => (
+                                                      <SelectItem key={rep.id} value={rep.id}>
+                                                        Assign All to {rep.full_name}
+                                                      </SelectItem>
+                                                    ))}
+                                                  </SelectContent>
+                                                </Select>
+                                              </div>
+                                              
+                                              <div>
+                                                <label className="text-sm font-medium mb-2 block">Priority Level</label>
+                                                <Select defaultValue="normal">
+                                                  <SelectTrigger>
+                                                    <SelectValue />
+                                                  </SelectTrigger>
+                                                  <SelectContent>
+                                                    <SelectItem value="low">🟢 Low Priority</SelectItem>
+                                                    <SelectItem value="normal">🟡 Normal Priority</SelectItem>
+                                                    <SelectItem value="high">🟠 High Priority</SelectItem>
+                                                    <SelectItem value="urgent">🔴 Urgent</SelectItem>
+                                                  </SelectContent>
+                                                </Select>
+                                              </div>
+                                            </div>
+
+                                            {/* Preview Table */}
+                                            <div className="border rounded-lg">
+                                              <div className="p-4 bg-gray-50 border-b">
+                                                <h4 className="font-semibold">Preview ({csvLeads.length} leads)</h4>
+                                              </div>
+                                              <div className="max-h-60 overflow-y-auto">
+                                                <table className="w-full text-sm">
+                                                  <thead className="bg-gray-50 sticky top-0">
+                                                    <tr>
+                                                      <th className="text-left p-2">Name</th>
+                                                      <th className="text-left p-2">Email</th>
+                                                      <th className="text-left p-2">Company</th>
+                                                      <th className="text-left p-2">Assigned To</th>
+                                                    </tr>
+                                                  </thead>
+                                                  <tbody>
+                                                    {csvLeads.slice(0, 10).map((lead, index) => (
+                                                      <tr key={index} className="border-t">
+                                                        <td className="p-2">{lead.full_name}</td>
+                                                        <td className="p-2">{lead.email}</td>
+                                                        <td className="p-2">{lead.company_name || '-'}</td>
+                                                        <td className="p-2">
+                                                          {csvDefaultRep === 'unassigned' && 'Unassigned'}
+                                                          {csvDefaultRep === 'auto-distribute' && `Rep ${(index % csvSalesReps.length) + 1}`}
+                                                          {csvDefaultRep === 'round-robin' && `Rep ${(index % csvSalesReps.length) + 1}`}
+                                                          {csvSalesReps.find(rep => rep.id === csvDefaultRep)?.full_name || 'TBD'}
+                                                        </td>
+                                                      </tr>
+                                                    ))}
+                                                    {csvLeads.length > 10 && (
+                                                      <tr>
+                                                        <td colSpan={4} className="p-2 text-center text-gray-500">
+                                                          ... and {csvLeads.length - 10} more leads
+                                                        </td>
+                                                      </tr>
+                                                    )}
+                                                  </tbody>
+                                                </table>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </CardContent>
+                                      </Card>
+                                    )}
+
+                                    {/* Action Buttons */}
+                                    {csvLeads.length > 0 && (
+                                      <div className="flex gap-3 justify-end">
+                                        <Button variant="outline" onClick={() => { setCsvLeads([]); setCsvFile(null); }}>
+                                          Cancel Import
+                                        </Button>
                                         <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() => setCsvFile(null)}
+                                          onClick={handleImportAndAssign}
+                                          disabled={csvImporting}
+                                          className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
                                         >
-                                          Remove
+                                          {csvImporting ? (
+                                            <>
+                                              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                              Importing & Assigning...
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Users className="h-4 w-4 mr-2" />
+                                              Import & Assign {csvLeads.length} Leads
+                                            </>
+                                          )}
                                         </Button>
                                       </div>
                                     )}
                                   </div>
+                                </DialogContent>
+                              </Dialog>
+                              <Button 
+                                variant="outline"
+                                onClick={() => navigate('/import/google-sheets')}
+                                className="h-20 flex-col gap-2"
+                              >
+                                <FileText className="h-6 w-6" />
+                                Google Sheets
+                              </Button>
+                            </div>
+
+                            {/* Stats Cards */}
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                              <Card className="border-green-200">
+                                <CardContent className="pt-6 text-center">
+                                  <div className="text-2xl font-bold text-green-600">
+                                    {stats.totalLeads}
+                                  </div>
+                                  <p className="text-sm text-muted-foreground">Total Leads</p>
                                 </CardContent>
                               </Card>
-
-                              {/* Assignment Section */}
-                              {csvLeads.length > 0 && (
-                                <Card>
-                                  <CardHeader>
-                                    <CardTitle className="text-lg">Step 2: Assign to Sales Representatives</CardTitle>
-                                    <CardDescription>
-                                      Choose how to assign these {csvLeads.length} leads to your sales team
-                                    </CardDescription>
-                                  </CardHeader>
-                                  <CardContent>
-                                    <div className="space-y-4">
-                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                          <label className="text-sm font-medium mb-2 block">Assignment Method</label>
-                                          <Select value={csvDefaultRep} onValueChange={setCsvDefaultRep}>
-                                            <SelectTrigger>
-                                              <SelectValue placeholder="Choose assignment method" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="unassigned">Leave Unassigned</SelectItem>
-                                              <SelectItem value="auto-distribute">Auto-Distribute Equally</SelectItem>
-                                              <SelectItem value="round-robin">Round Robin Assignment</SelectItem>
-                                              {csvSalesReps.map((rep) => (
-                                                <SelectItem key={rep.id} value={rep.id}>
-                                                  Assign All to {rep.full_name}
-                                                </SelectItem>
-                                              ))}
-                                            </SelectContent>
-                                          </Select>
-                                        </div>
-                                        
-                                        <div>
-                                          <label className="text-sm font-medium mb-2 block">Priority Level</label>
-                                          <Select defaultValue="normal">
-                                            <SelectTrigger>
-                                              <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="low">🟢 Low Priority</SelectItem>
-                                              <SelectItem value="normal">🟡 Normal Priority</SelectItem>
-                                              <SelectItem value="high">🟠 High Priority</SelectItem>
-                                              <SelectItem value="urgent">🔴 Urgent</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        </div>
-                                      </div>
-
-                                      {/* Preview Table */}
-                                      <div className="border rounded-lg">
-                                        <div className="p-4 bg-gray-50 border-b">
-                                          <h4 className="font-semibold">Preview ({csvLeads.length} leads)</h4>
-                                        </div>
-                                        <div className="max-h-60 overflow-y-auto">
-                                          <table className="w-full text-sm">
-                                            <thead className="bg-gray-50 sticky top-0">
-                                              <tr>
-                                                <th className="text-left p-2">Name</th>
-                                                <th className="text-left p-2">Email</th>
-                                                <th className="text-left p-2">Company</th>
-                                                <th className="text-left p-2">Assigned To</th>
-                                              </tr>
-                                            </thead>
-                                            <tbody>
-                                              {csvLeads.slice(0, 10).map((lead, index) => (
-                                                <tr key={index} className="border-t">
-                                                  <td className="p-2">{lead.full_name}</td>
-                                                  <td className="p-2">{lead.email}</td>
-                                                  <td className="p-2">{lead.company_name || '-'}</td>
-                                                  <td className="p-2">
-                                                    {csvDefaultRep === 'unassigned' && 'Unassigned'}
-                                                    {csvDefaultRep === 'auto-distribute' && `Rep ${(index % csvSalesReps.length) + 1}`}
-                                                    {csvDefaultRep === 'round-robin' && `Rep ${(index % csvSalesReps.length) + 1}`}
-                                                    {csvSalesReps.find(rep => rep.id === csvDefaultRep)?.full_name || 'TBD'}
-                                                  </td>
-                                                </tr>
-                                              ))}
-                                              {csvLeads.length > 10 && (
-                                                <tr>
-                                                  <td colSpan={4} className="p-2 text-center text-gray-500">
-                                                    ... and {csvLeads.length - 10} more leads
-                                                  </td>
-                                                </tr>
-                                              )}
-                                            </tbody>
-                                          </table>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              )}
-
-                              {/* Action Buttons */}
-                              {csvLeads.length > 0 && (
-                                <div className="flex gap-3 justify-end">
-                                  <Button variant="outline" onClick={() => { setCsvLeads([]); setCsvFile(null); }}>
-                                    Cancel Import
-                                  </Button>
-                                  <Button
-                                    onClick={handleImportAndAssign}
-                                    disabled={csvImporting}
-                                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+                              <Card className="border-blue-200">
+                                <CardContent className="pt-6 text-center">
+                                  <div className="text-2xl font-bold text-blue-600">
+                                    {repPerformance.length}
+                                  </div>
+                                  <p className="text-sm text-muted-foreground">Active Reps</p>
+                                </CardContent>
+                              </Card>
+                              <Card className="border-orange-200">
+                                <CardContent className="pt-6 text-center">
+                                  <div className="text-2xl font-bold text-orange-600">
+                                    {Math.round(stats.conversionRate)}%
+                                  </div>
+                                  <p className="text-sm text-muted-foreground">Conversion Rate</p>
+                                </CardContent>
+                              </Card>
+                              <Card className="border-purple-200">
+                                <CardContent className="pt-6 text-center">
+                                  <Button 
+                                    onClick={() => navigate('/call-history?analytics=true')}
+                                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                                    size="sm"
                                   >
-                                    {csvImporting ? (
-                                      <>
-                                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                                        Importing & Assigning...
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Users className="h-4 w-4 mr-2" />
-                                        Import & Assign {csvLeads.length} Leads
-                                      </>
-                                    )}
+                                    <BarChart3 className="h-4 w-4 mr-2" />
+                                    View Analytics
                                   </Button>
-                                </div>
-                              )}
+                                </CardContent>
+                              </Card>
                             </div>
-                          </DialogContent>
-                        </Dialog>
-                        <Button 
-                          variant="outline"
-                          onClick={() => navigate('/import/google-sheets')}
-                          className="h-20 flex-col gap-2"
-                        >
-                          <FileText className="h-6 w-6" />
-                          Google Sheets
-                        </Button>
-                      </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
 
-                      {/* Stats Cards */}
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <Card className="border-green-200">
-                          <CardContent className="pt-6 text-center">
-                            <div className="text-2xl font-bold text-green-600">
-                              {stats.totalLeads}
-                            </div>
-                            <p className="text-sm text-muted-foreground">Total Leads</p>
+
+
+                    <TabsContent value="settings" className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                              <UserPlus className="h-5 w-5" />
+                              User Management
+                            </CardTitle>
+                            <CardDescription>
+                              Manage users and permissions
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent className="space-y-3">
+                            <Button className="w-full" onClick={() => navigate('/admin')}>
+                              <UserPlus className="h-4 w-4 mr-2" />
+                              Invite New User
+                            </Button>
+                            <Button variant="outline" className="w-full" onClick={() => { setShowUsersModal(true); fetchAllUsers(); }}>
+                              <Users className="h-4 w-4 mr-2" />
+                              View All Users
+                            </Button>
                           </CardContent>
                         </Card>
-                        <Card className="border-blue-200">
-                          <CardContent className="pt-6 text-center">
-                            <div className="text-2xl font-bold text-blue-600">
-                              {repPerformance.length}
-                            </div>
-                            <p className="text-sm text-muted-foreground">Active Reps</p>
-                          </CardContent>
-                        </Card>
-                        <Card className="border-orange-200">
-                          <CardContent className="pt-6 text-center">
-                            <div className="text-2xl font-bold text-orange-600">
-                              {Math.round(stats.conversionRate)}%
-                            </div>
-                            <p className="text-sm text-muted-foreground">Conversion Rate</p>
-                          </CardContent>
-                        </Card>
-                        <Card className="border-purple-200">
-                          <CardContent className="pt-6 text-center">
+
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                              <Settings className="h-5 w-5" />
+                              System Settings
+                            </CardTitle>
+                            <CardDescription>
+                              Configure system-wide settings
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent className="space-y-3">
                             <Button 
-                              onClick={() => navigate('/call-history?analytics=true')}
-                              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
-                              size="sm"
+                              variant="outline" 
+                              className="w-full"
+                              onClick={() => navigate('/import/google-sheets')}
                             >
-                              <BarChart3 className="h-4 w-4 mr-2" />
-                              View Analytics
+                              <FileText className="h-4 w-4 mr-2" />
+                              Import from Google Sheets
+                            </Button>
+                            <Button variant="outline" className="w-full" onClick={handleExportUsers}>
+                              <Download className="h-4 w-4 mr-2" />
+                              Export Data
                             </Button>
                           </CardContent>
                         </Card>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-
-
-              <TabsContent value="settings" className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <UserPlus className="h-5 w-5" />
-                        User Management
-                      </CardTitle>
-                      <CardDescription>
-                        Manage users and permissions
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <Button className="w-full" onClick={() => navigate('/admin')}>
-                        <UserPlus className="h-4 w-4 mr-2" />
-                        Invite New User
-                      </Button>
-                      <Button variant="outline" className="w-full" onClick={() => { setShowUsersModal(true); fetchAllUsers(); }}>
-                        <Users className="h-4 w-4 mr-2" />
-                        View All Users
-                      </Button>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Settings className="h-5 w-5" />
-                        System Settings
-                      </CardTitle>
-                      <CardDescription>
-                        Configure system-wide settings
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <Button 
-                        variant="outline" 
-                        className="w-full"
-                        onClick={() => navigate('/import/google-sheets')}
-                      >
-                        <FileText className="h-4 w-4 mr-2" />
-                        Import from Google Sheets
-                      </Button>
-                      <Button variant="outline" className="w-full" onClick={handleExportUsers}>
-                        <Download className="h-4 w-4 mr-2" />
-                        Export Data
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </div>
-                <Card className="mt-6">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Upload className="h-5 w-5" />
-                      Upload Leads (CSV)
-                    </CardTitle>
-                    <CardDescription>Upload leads and assign to sales reps. Columns: Name, Email, Company, Phone, Location, Notes</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <Input type="file" accept=".csv" onChange={handleCsvUpload} />
-                    {csvPreview && csvLeads.length > 0 && (
-                      <>
-                        <div className="flex items-center gap-4">
-                          <Button variant="outline" onClick={() => assignAllCsvToRep('unassigned')}>Unassign All</Button>
-                          <Select value={csvDefaultRep} onValueChange={assignAllCsvToRep}>
-                            <SelectTrigger className="w-64">
-                              <SelectValue placeholder="Assign all to..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="unassigned">Unassigned</SelectItem>
-                              {csvSalesReps.map(rep => (
-                                <SelectItem key={rep.id} value={rep.id}>{rep.full_name} ({rep.role})</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Button onClick={handleImportCsvLeads} disabled={csvImporting}>
-                            {csvImporting ? 'Importing...' : 'Import Selected'}
-                          </Button>
-                        </div>
-                        <div className="overflow-x-auto">
-                          <table className="min-w-full text-sm">
-                            <thead>
-                              <tr>
-                                <th></th>
-                                <th>Name</th>
-                                <th>Email</th>
-                                <th>Company</th>
-                                <th>Phone</th>
-                                <th>Location</th>
-                                <th>Notes</th>
-                                <th>Assigned Rep</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {csvLeads.map(lead => (
-                                <tr key={lead.id} className="border-b">
-                                  <td><input type="checkbox" checked={lead.selected} onChange={() => setCsvLeads(prev => prev.map(l => l.id === lead.id ? { ...l, selected: !l.selected } : l))} /></td>
-                                  <td>{lead.name}</td>
-                                  <td>{lead.email}</td>
-                                  <td>{lead.company}</td>
-                                  <td>{lead.phone}</td>
-                                  <td>{lead.location}</td>
-                                  <td>{lead.notes}</td>
-                                  <td>
-                                    <Select value={lead.assignedRepId || 'unassigned'} onValueChange={v => updateCsvLeadAssignment(lead.id, v)}>
-                                      <SelectTrigger className="w-40">
-                                        <SelectValue placeholder="Assign..." />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="unassigned">Unassigned</SelectItem>
-                                        {csvSalesReps.map(rep => (
-                                          <SelectItem key={rep.id} value={rep.id}>{rep.full_name}</SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Integrations Section */}
-                <Card className="mt-6">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Settings className="h-5 w-5" />
-                      Integrations
-                    </CardTitle>
-                    <CardDescription>
-                      Connect with external services and import leads automatically
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <N8NIntegration 
-                      onLeadsImported={(count) => {
-                        toast({
-                          title: "Leads Imported",
-                          description: `Successfully imported ${count} leads from N8N`,
-                        });
-                        fetchDashboardData(); // Refresh dashboard data
-                      }}
-                    />
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </div>
-        </div>
-      </div>
-      <Dialog open={showUsersModal} onOpenChange={setShowUsersModal}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>All Users</DialogTitle>
-          </DialogHeader>
-          {usersLoading ? (
-            <div className="p-6 text-center">Loading...</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr>
-                    <th className="px-2 py-1 text-left">Name</th>
-                    <th className="px-2 py-1 text-left">Email</th>
-                    <th className="px-2 py-1 text-left">Role</th>
-                    <th className="px-2 py-1 text-left">Phone</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {allUsers.map(user => (
-                    <tr key={user.id} className="border-b">
-                      <td className="px-2 py-1">{user.full_name}</td>
-                      <td className="px-2 py-1">{user.email}</td>
-                      <td className="px-2 py-1">{user.role}</td>
-                      <td className="px-2 py-1">{user.phone || '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          <div className="flex justify-end pt-4">
-            <Button variant="outline" onClick={() => setShowUsersModal(false)}>Close</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Messages Modal */}
-      <Dialog open={showMessagesModal} onOpenChange={setShowMessagesModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Phone className="h-5 w-5" />
-              Messages
-              {inbox.length > 0 && (
-                <Badge variant="destructive" className="ml-2">
-                  {inbox.length}
-                </Badge>
-              )}
-            </DialogTitle>
-            <DialogDescription>
-              Communicate with your team members and view conversation history
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-h-[60vh] overflow-hidden">
-            {/* Message History */}
-            <div className="space-y-4">
-              <h4 className="font-semibold text-lg">Recent Messages</h4>
-              <div className="bg-gray-50 rounded-lg p-4 max-h-[40vh] overflow-auto">
-                <div className="space-y-3">
-                  {inbox.map(msg => (
-                    <div key={msg.id} className="bg-white rounded-lg p-3 shadow-sm border">
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                            {(msg.sender_name || 'U').charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <span className="font-medium text-gray-900">{msg.sender_name || 'User'}</span>
-                            <span className="text-gray-500 ml-2 text-sm">to {msg.recipient_id === profile?.id ? 'You' : 'Team'}</span>
-                          </div>
-                        </div>
-                        <span className="text-xs text-gray-400">{new Date(msg.created_at).toLocaleString()}</span>
-                      </div>
-                      <div className="text-gray-700 ml-10">{msg.body}</div>
-                    </div>
-                  ))}
-                  {inbox.length === 0 && (
-                    <div className="text-center py-8">
-                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Phone className="h-8 w-8 text-gray-400" />
-                      </div>
-                      <p className="text-gray-500 text-lg">No messages yet</p>
-                      <p className="text-gray-400 text-sm">Start a conversation with your team!</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Send Message */}
-            <div className="space-y-4">
-              <h4 className="font-semibold text-lg">Send Message</h4>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Select Recipient</label>
-                    <Select value={selectedRepForMsg} onValueChange={setSelectedRepForMsg}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select recipient" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {allUsers.filter(user => user.id !== profile?.id).map(user => (
-                          <SelectItem key={user.id} value={user.id}>
-                            <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-medium">
-                                {user.full_name.charAt(0).toUpperCase()}
+                      <Card className="mt-6">
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Upload className="h-5 w-5" />
+                            Upload Leads (CSV)
+                          </CardTitle>
+                          <CardDescription>Upload leads and assign to sales reps. Columns: Name, Email, Company, Phone, Location, Notes</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <Input type="file" accept=".csv" onChange={handleCsvUpload} />
+                          {csvPreview && csvLeads.length > 0 && (
+                            <>
+                              <div className="flex items-center gap-4">
+                                <Button variant="outline" onClick={() => assignAllCsvToRep('unassigned')}>Unassign All</Button>
+                                <Select value={csvDefaultRep} onValueChange={assignAllCsvToRep}>
+                                  <SelectTrigger className="w-64">
+                                    <SelectValue placeholder="Assign all to..." />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                                    {csvSalesReps.map(rep => (
+                                      <SelectItem key={rep.id} value={rep.id}>{rep.full_name} ({rep.role})</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Button onClick={handleImportCsvLeads} disabled={csvImporting}>
+                                  {csvImporting ? 'Importing...' : 'Import Selected'}
+                                </Button>
                               </div>
-                              {user.full_name} ({user.role})
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
-                    <Textarea
-                      placeholder="Type your message here..."
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      className="min-h-[100px] resize-none"
-                    />
-                  </div>
-                  <Button 
-                    onClick={sendMessage} 
-                    disabled={!selectedRepForMsg || !newMessage.trim()}
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                  >
-                    Send Message
-                  </Button>
+                              <div className="overflow-x-auto">
+                                <table className="min-w-full text-sm">
+                                  <thead>
+                                    <tr>
+                                      <th></th>
+                                      <th>Name</th>
+                                      <th>Email</th>
+                                      <th>Company</th>
+                                      <th>Phone</th>
+                                      <th>Location</th>
+                                      <th>Notes</th>
+                                      <th>Assigned Rep</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {csvLeads.map(lead => (
+                                      <tr key={lead.id} className="border-b">
+                                        <td><input type="checkbox" checked={lead.selected} onChange={() => setCsvLeads(prev => prev.map(l => l.id === lead.id ? { ...l, selected: !l.selected } : l))} /></td>
+                                        <td>{lead.name}</td>
+                                        <td>{lead.email}</td>
+                                        <td>{lead.company}</td>
+                                        <td>{lead.phone}</td>
+                                        <td>{lead.location}</td>
+                                        <td>{lead.notes}</td>
+                                        <td>
+                                          <Select value={lead.assignedRepId || 'unassigned'} onValueChange={v => updateCsvLeadAssignment(lead.id, v)}>
+                                            <SelectTrigger className="w-40">
+                                              <SelectValue placeholder="Assign..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="unassigned">Unassigned</SelectItem>
+                                              {csvSalesReps.map(rep => (
+                                                <SelectItem key={rep.id} value={rep.id}>{rep.full_name}</SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </>
+                          )}
+                        </CardContent>
+                      </Card>
+
+                      {/* Integrations Section */}
+                      <Card className="mt-6">
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Settings className="h-5 w-5" />
+                            Integrations
+                          </CardTitle>
+                          <CardDescription>
+                            Connect with external services and import leads automatically
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <N8NIntegration 
+                            onLeadsImported={(count) => {
+                              toast({
+                                title: "Leads Imported",
+                                description: `Successfully imported ${count} leads from N8N`,
+                              });
+                              fetchDashboardData(); // Refresh dashboard data
+                            }}
+                          />
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  </Tabs>
                 </div>
               </div>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </section>
+          <section id="crm" className={activeSection === 'crm' ? '' : 'hidden'}>
+            {/* CRM content (reuse CRMDashboard or summary) */}
+            <CRMDashboard userId={user?.id} role={profile?.role} />
+          </section>
+          <section id="settings" className={activeSection === 'settings' ? '' : 'hidden'}>
+            {/* Settings content (old Settings TabsContent) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <UserPlus className="h-5 w-5" />
+                    User Management
+                  </CardTitle>
+                  <CardDescription>
+                    Manage users and permissions
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Button className="w-full" onClick={() => navigate('/admin')}>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Invite New User
+                  </Button>
+                  <Button variant="outline" className="w-full" onClick={() => { setShowUsersModal(true); fetchAllUsers(); }}>
+                    <Users className="h-4 w-4 mr-2" />
+                    View All Users
+                  </Button>
+                </CardContent>
+              </Card>
 
-
-      {/* Messaging System */}
-      <MessagingSystem
-        isOpen={showMessagingSystem}
-        onClose={() => setShowMessagingSystem(false)}
-        currentUserId={profile?.id || ''}
-        currentUserRole={profile?.role || 'admin'}
-      />
-
-      {/* Sales Rep CRM Modal */}
-      <Dialog open={showRepCrmModal} onOpenChange={setShowRepCrmModal}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
-              Select Sales Rep CRM Dashboard
-            </DialogTitle>
-            <DialogDescription>
-              Choose a sales rep to view their CRM activities and data
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {repPerformance.map((rep) => (
-                <Card 
-                  key={rep.id} 
-                  className="cursor-pointer hover:shadow-lg transition-shadow border-gray-200 hover:border-purple-300"
-                  onClick={() => {
-                    setSelectedRepForCrm(rep.id);
-                    setShowRepCrmModal(false);
-                    // Open the actual CRM dashboard
-                    navigate('/crm', { state: { repId: rep.id, repName: rep.name } });
-                  }}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center text-white text-lg font-medium">
-                        {rep.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900">{rep.name}</h3>
-                        <p className="text-sm text-gray-600">{rep.email}</p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <Badge variant="outline" className="text-xs">
-                            {rep.conversionRate.toFixed(1)}% Conversion
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            {rep.totalCalls} Calls
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="h-5 w-5" />
+                    System Settings
+                  </CardTitle>
+                  <CardDescription>
+                    Configure system-wide settings
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => navigate('/import/google-sheets')}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Import from Google Sheets
+                  </Button>
+                  <Button variant="outline" className="w-full" onClick={handleExportUsers}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Export Data
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
-            {repPerformance.length === 0 && (
-              <div className="text-center py-8">
-                <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">No sales reps found</p>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Upload className="h-5 w-5" />
+                  Upload Leads (CSV)
+                </CardTitle>
+                <CardDescription>Upload leads and assign to sales reps. Columns: Name, Email, Company, Phone, Location, Notes</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Input type="file" accept=".csv" onChange={handleCsvUpload} />
+                {csvPreview && csvLeads.length > 0 && (
+                  <>
+                    <div className="flex items-center gap-4">
+                      <Button variant="outline" onClick={() => assignAllCsvToRep('unassigned')}>Unassign All</Button>
+                      <Select value={csvDefaultRep} onValueChange={assignAllCsvToRep}>
+                        <SelectTrigger className="w-64">
+                          <SelectValue placeholder="Assign all to..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="unassigned">Unassigned</SelectItem>
+                          {csvSalesReps.map(rep => (
+                            <SelectItem key={rep.id} value={rep.id}>{rep.full_name} ({rep.role})</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button onClick={handleImportCsvLeads} disabled={csvImporting}>
+                        {csvImporting ? 'Importing...' : 'Import Selected'}
+                      </Button>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-sm">
+                        <thead>
+                          <tr>
+                            <th></th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Company</th>
+                            <th>Phone</th>
+                            <th>Location</th>
+                            <th>Notes</th>
+                            <th>Assigned Rep</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {csvLeads.map(lead => (
+                            <tr key={lead.id} className="border-b">
+                              <td><input type="checkbox" checked={lead.selected} onChange={() => setCsvLeads(prev => prev.map(l => l.id === lead.id ? { ...l, selected: !l.selected } : l))} /></td>
+                              <td>{lead.name}</td>
+                              <td>{lead.email}</td>
+                              <td>{lead.company}</td>
+                              <td>{lead.phone}</td>
+                              <td>{lead.location}</td>
+                              <td>{lead.notes}</td>
+                              <td>
+                                <Select value={lead.assignedRepId || 'unassigned'} onValueChange={v => updateCsvLeadAssignment(lead.id, v)}>
+                                  <SelectTrigger className="w-40">
+                                    <SelectValue placeholder="Assign..." />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                                    {csvSalesReps.map(rep => (
+                                      <SelectItem key={rep.id} value={rep.id}>{rep.full_name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
 
-export default AdminDashboard;
+            {/* Integrations Section */}
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Integrations
+                </CardTitle>
+                <CardDescription>
+                  Connect with external services and import leads automatically
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <N8NIntegration 
+                  onLeadsImported={(count) => {
+                    toast({
+                      title: "Leads Imported",
+                      description: `Successfully imported ${count} leads from N8N`,
+                    });
+                    fetchDashboardData(); // Refresh dashboard data
+                  }}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  </main>
+</div>
