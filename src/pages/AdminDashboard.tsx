@@ -899,8 +899,10 @@ const AdminDashboard = () => {
               </Button>
             </div>
           </div>
-          {/* Content Sections */}
-          <section id="overview" className={activeSection === 'overview' ? '' : 'hidden'}>
+        </div>
+        {/* Content Sections */}
+        <section id="overview" className={activeSection === 'overview' ? '' : 'hidden'}>
+          <div className="container mx-auto px-4 py-8">
             {/* Overview content (stats, repPerformance, activity) */}
             <div>
               {/* Stats Overview */}
@@ -1782,13 +1784,34 @@ const AdminDashboard = () => {
                   </Tabs>
                 </div>
               </div>
-            </div>
-          </section>
-          <section id="crm" className={activeSection === 'crm' ? '' : 'hidden'}>
+          </div>
+        </section>
+        <section id="deals" className={activeSection === 'deals' ? '' : 'hidden'}>
+          <div className="container mx-auto px-4 py-8">
+            <h2 className="text-2xl font-bold mb-4">Deals</h2>
+            <p className="text-muted-foreground">Deals content will be displayed here.</p>
+          </div>
+        </section>
+        <section id="performance" className={activeSection === 'performance' ? '' : 'hidden'}>
+          <div className="container mx-auto px-4 py-8">
+            <h2 className="text-2xl font-bold mb-4">Performance</h2>
+            <p className="text-muted-foreground">Performance analytics will be displayed here.</p>
+          </div>
+        </section>
+        <section id="leads" className={activeSection === 'leads' ? '' : 'hidden'}>
+          <div className="container mx-auto px-4 py-8">
+            <h2 className="text-2xl font-bold mb-4">Lead Management</h2>
+            <p className="text-muted-foreground">Lead management content will be displayed here.</p>
+          </div>
+        </section>
+        <section id="crm" className={activeSection === 'crm' ? '' : 'hidden'}>
+          <div className="container mx-auto px-4 py-8">
             {/* CRM content (reuse CRMDashboard or summary) */}
             <CRMDashboard userId={user?.id} role={profile?.role} />
-          </section>
-          <section id="settings" className={activeSection === 'settings' ? '' : 'hidden'}>
+          </div>
+        </section>
+        <section id="settings" className={activeSection === 'settings' ? '' : 'hidden'}>
+          <div className="container mx-auto px-4 py-8">
             {/* Settings content (old Settings TabsContent) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card>
@@ -1938,9 +1961,17 @@ const AdminDashboard = () => {
                 />
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
+          </div>
+        </section>
+      </main>
+      <MessagingSystem
+        isOpen={showMessagingSystem}
+        onClose={() => setShowMessagingSystem(false)}
+        currentUserId={profile?.id || ''}
+        currentUserRole={profile?.role || 'admin'}
+      />
     </div>
-  </main>
-</div>
+  );
+};
+
+export default AdminDashboard;
