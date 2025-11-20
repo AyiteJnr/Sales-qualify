@@ -208,6 +208,10 @@ const AdminDashboard = () => {
   const [selectedRepForCrm, setSelectedRepForCrm] = useState<string>('');
   const [showRepCrmModal, setShowRepCrmModal] = useState(false);
   const [activeSection, setActiveSection] = useState('overview');
+  const [crmLoading, setCrmLoading] = useState(false);
+  const [crmModalType, setCrmModalType] = useState<'company' | 'contact' | 'deal' | 'activity' | null>(null);
+  const [editingRecord, setEditingRecord] = useState<any>(null);
+  const [showCrmModal, setShowCrmModal] = useState(false);
 
   // Realtime subscription for call records to keep dashboard in sync
   useEffect(() => {
@@ -1078,38 +1082,6 @@ const AdminDashboard = () => {
 
                   </TabsContent>
 
-                  <TabsContent value="activity" className="space-y-6">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>System Activity Log</CardTitle>
-                        <CardDescription>
-                          Complete activity log for monitoring and auditing
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-3">
-                          {recentActivity.map((activity) => (
-                            <div key={activity.id} className="flex items-center gap-4 p-4 border rounded-lg">
-                              <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                                <Activity className="h-5 w-5 text-gray-600" />
-                              </div>
-                              <div className="flex-1">
-                                <p className="font-medium">{activity.description}</p>
-                                <p className="text-sm text-gray-600">
-                                  {activity.user} • {new Date(activity.timestamp).toLocaleString()}
-                                </p>
-                              </div>
-                              <Badge variant="outline">
-                                {activity.type}
-                              </Badge>
-                            </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-
-
                   <TabsContent value="deals" className="space-y-6">
                     <div className="grid gap-6">
                       {/* Deals Filter Header */}
@@ -1520,9 +1492,9 @@ const AdminDashboard = () => {
                                                   <tbody>
                                                     {csvLeads.slice(0, 10).map((lead, index) => (
                                                       <tr key={index} className="border-t">
-                                                        <td className="p-2">{lead.full_name}</td>
+                                                        <td className="p-2">{lead.name || lead.full_name}</td>
                                                         <td className="p-2">{lead.email}</td>
-                                                        <td className="p-2">{lead.company_name || '-'}</td>
+                                                        <td className="p-2">{lead.company || lead.company_name || '-'}</td>
                                                         <td className="p-2">
                                                           {csvDefaultRep === 'unassigned' && 'Unassigned'}
                                                           {csvDefaultRep === 'auto-distribute' && `Rep ${(index % csvSalesReps.length) + 1}`}
